@@ -1,0 +1,31 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Local notes and temporary files
+.tmp/
+PROJECT_CONTEXT.md
+PROJECT_HANDOFF.md
+
+# Logs
+*.log
+backend/*-run.log
+backend/*-run.err.log
+frontend/*-run.log
+frontend/*-run.err.log
+
+# Java / Maven
+backend/target/
+backend/judge-work/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+
+# Local database/runtime data
+mysql-data/
