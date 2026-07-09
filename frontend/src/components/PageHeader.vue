@@ -28,16 +28,20 @@ defineProps<{
   align-items: flex-end;
   justify-content: space-between;
   min-height: 58px;
+  padding: 4px 0 6px;
 }
 
 h1 {
   margin: 0;
-  font-size: 26px;
+  color: var(--text-primary);
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
 }
 
 p {
   margin: 6px 0 0;
-  color: #667085;
+  color: var(--text-muted);
+  line-height: 1.6;
 }
 
 .page-actions {
@@ -45,5 +49,16 @@ p {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+}
+
+@media (max-width: 680px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-actions {
+    justify-content: flex-start;
+  }
 }
 </style>

@@ -30,6 +30,42 @@
           <el-button type="primary" :loading="submitting" @click="submit">提交代码</el-button>
         </div>
         <CodeEditor v-model="code" height="500px" />
+        <div class="custom-test-panel">
+          <div class="custom-test-header">
+            <strong>自测运行</strong>
+            <div class="custom-test-actions">
+              <el-button size="small" @click="loadSampleInput">载入样例输入</el-button>
+              <el-button size="small" type="primary" :loading="runningCustomTest" @click="runCustomTest">运行自测</el-button>
+            </div>
+          </div>
+          <div class="custom-test-grid">
+            <el-form-item label="自测输入">
+              <el-input
+                v-model="customInput"
+                type="textarea"
+                :rows="7"
+                resize="vertical"
+                placeholder="在这里输入程序的 stdin 内容"
+              />
+            </el-form-item>
+            <el-form-item label="运行输出">
+              <el-input
+                v-model="customOutput"
+                type="textarea"
+                :rows="7"
+                resize="vertical"
+                readonly
+                placeholder="运行结果会显示在这里"
+              />
+            </el-form-item>
+          </div>
+          <div v-if="customTestResult" class="custom-test-result">
+            <el-tag :type="customStatusType">{{ customTestResult.status }}</el-tag>
+            <span>耗时：{{ customTestResult.timeUsedMs }} ms</span>
+            <span v-if="customTestResult.stderr" class="custom-test-error">stderr：{{ customTestResult.stderr }}</span>
+            <span v-if="customTestResult.errorMessage" class="custom-test-error">{{ customTestResult.errorMessage }}</span>
+          </div>
+        </div>
         <div v-if="latest" class="result-card">
           <SubmissionStatusTag :status="latest.status" />
           <span>分数：{{ latest.score }}</span>
@@ -57,9 +93,9 @@ import ProblemStatusTag from '@/components/ProblemStatusTag.vue'
 import HintPanel from '@/components/HintPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import SubmissionStatusTag from '@/components/SubmissionStatusTag.vue'
-import { getHintApi, getStudentContestApi, getStudentProblemApi, studentSubmissionsApi, submitCodeApi } from '@/api/studentContest'
+import { getHintApi, getStudentContestApi, getStudentProblemApi, runCustomTestApi, studentSubmissionsApi, submitCodeApi } from '@/api/studentContest'
 import { getSubmissionApi } from '@/api/submission'
-import type { ContestInfo, ContestProblemInfo, HintView, SubmissionInfo } from '@/api/types'
+import type { ContestInfo, ContestProblemInfo, CustomTestResult, HintView, SubmissionInfo } from '@/api/types'
 import { contestPhase, formatDateTime } from '@/utils/time'
 
 const route = useRoute()
@@ -73,9 +109,19 @@ const hint = ref<HintView | null>(null)
 const submissions = ref<SubmissionInfo[]>([])
 const latest = ref<SubmissionInfo | null>(null)
 const code = ref('#include <iostream>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n')
+const customInput = ref('')
+const customOutput = ref('')
+const customTestResult = ref<CustomTestResult | null>(null)
+const runningCustomTest = ref(false)
 let pollTimer = 0
 
 const contestEnded = computed(() => (contest.value ? contestPhase(contest.value.startTime, contest.value.endTime) === 'ended' : false))
+const customStatusType = computed(() => {
+  if (!customTestResult.value) return 'info'
+  if (customTestResult.value.status === 'FINISHED') return 'success'
+  if (customTestResult.value.status === 'COMPILE_ERROR' || customTestResult.value.status === 'RUNTIME_ERROR') return 'danger'
+  return 'warning'
+})
 
 async function loadHint() {
   hint.value = await getHintApi(contestId.value, problemId.value)
@@ -92,9 +138,32 @@ async function load() {
     problem.value = problemInfo
     submissions.value = submitList.filter((item) => item.problemId === problemId.value)
     latest.value = submissions.value[0] || null
+    if (!customInput.value && problemInfo.sampleInput) customInput.value = problemInfo.sampleInput
     await loadHint()
   } finally {
     loading.value = false
+  }
+}
+
+function loadSampleInput() {
+  customInput.value = problem.value?.sampleInput || ''
+}
+
+async function runCustomTest() {
+  runningCustomTest.value = true
+  customTestResult.value = null
+  customOutput.value = ''
+  try {
+    const result = await runCustomTestApi(contestId.value, problemId.value, code.value, customInput.value)
+    customTestResult.value = result
+    customOutput.value = result.stdout || ''
+    if (result.status === 'FINISHED') {
+      ElMessage.success('自测运行完成')
+    }
+  } catch {
+    // The request interceptor has already shown the server message.
+  } finally {
+    runningCustomTest.value = false
   }
 }
 async function submit() {
@@ -159,6 +228,49 @@ onUnmounted(() => window.clearInterval(pollTimer))
   border-radius: 8px;
 }
 
+.custom-test-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #d8e2ec;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.custom-test-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.custom-test-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.custom-test-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.custom-test-result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+.custom-test-error {
+  flex-basis: 100%;
+  color: #c45656;
+  white-space: pre-wrap;
+}
+
 .error-message {
   flex-basis: 100%;
   color: #c45656;
@@ -168,6 +280,10 @@ onUnmounted(() => window.clearInterval(pollTimer))
 
 @media (max-width: 1020px) {
   .problem-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-test-grid {
     grid-template-columns: 1fr;
   }
 }

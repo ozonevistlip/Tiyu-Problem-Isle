@@ -12,9 +12,9 @@ let timer = 0
 
 const phase = computed(() => contestPhase(props.startTime, props.endTime))
 const label = computed(() => {
-  if (phase.value === 'upcoming') return `距离开始 ${formatDuration(secondsUntil(props.startTime))}`
-  if (phase.value === 'running') return `剩余 ${formatDuration(secondsUntil(props.endTime))}`
-  return '比赛已结束'
+  if (phase.value === 'upcoming') return `准备出发 ${formatDuration(secondsUntil(props.startTime))}`
+  if (phase.value === 'running') return `闯关中 ${formatDuration(secondsUntil(props.endTime))}`
+  return '已完成挑战'
 })
 const tagType = computed(() => (phase.value === 'running' ? 'success' : phase.value === 'upcoming' ? 'warning' : 'info'))
 

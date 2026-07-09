@@ -1,6 +1,7 @@
 package com.example.oj.controller;
 
 import com.example.oj.common.Result;
+import com.example.oj.dto.CustomTestRequest;
 import com.example.oj.dto.SubmitCodeRequest;
 import com.example.oj.service.StudentService;
 import com.example.oj.utils.UserContext;
@@ -49,6 +50,13 @@ public class StudentContestController {
                                        @PathVariable Long problemId,
                                        @Valid @RequestBody SubmitCodeRequest request) {
         return Result.success(studentService.submit(contestId, problemId, request));
+    }
+
+    @PostMapping("/{contestId}/problems/{problemId}/run")
+    public Result<CustomTestVO> runCustomTest(@PathVariable Long contestId,
+                                              @PathVariable Long problemId,
+                                              @Valid @RequestBody CustomTestRequest request) {
+        return Result.success(studentService.runCustomTest(contestId, problemId, request));
     }
 
     @GetMapping("/{contestId}/submissions")

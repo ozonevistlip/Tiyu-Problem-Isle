@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.oj.common.BusinessException;
 import com.example.oj.common.ErrorCode;
+import com.example.oj.dto.CustomTestRequest;
 import com.example.oj.dto.SubmitCodeRequest;
 import com.example.oj.entity.*;
+import com.example.oj.judge.CustomTestResult;
+import com.example.oj.judge.DockerJudgeRunner;
 import com.example.oj.mapper.*;
 import com.example.oj.service.StudentService;
 import com.example.oj.utils.UserContext;
@@ -38,6 +41,7 @@ public class StudentServiceImpl implements StudentService {
     private final ContestParticipantMapper contestParticipantMapper;
     private final UserMapper userMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final DockerJudgeRunner dockerJudgeRunner;
 
     @Value("${oj.judge.queue-name:judge_queue}")
     private String judgeQueueName;
@@ -173,6 +177,25 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "判题队列服务未启动，请联系老师或管理员");
         }
         return toSubmissionVO(submission);
+    }
+
+    @Override
+    public CustomTestVO runCustomTest(Long contestId, Long problemId, CustomTestRequest request) {
+        UserContext.requireStudent();
+        requireVisibleContest(contestId);
+        requireContestProblem(contestId, problemId);
+        Problem problem = requireProblem(problemId);
+        if (!"cpp17".equalsIgnoreCase(request.getLanguage())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "褰撳墠浠呮敮鎸?cpp17");
+        }
+        CustomTestResult result = dockerJudgeRunner.runCustom(problem, request.getCode(), request.getInput());
+        return CustomTestVO.builder()
+                .status(result.getStatus())
+                .stdout(result.getStdout())
+                .stderr(result.getStderr())
+                .timeUsedMs(result.getTimeUsedMs())
+                .errorMessage(result.getErrorMessage())
+                .build();
     }
 
     @Override

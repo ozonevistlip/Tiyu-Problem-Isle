@@ -49,6 +49,30 @@ The development API URL is configured in `frontend/.env.development`:
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
+## Windows One-Command Dev Startup
+
+This repository includes PowerShell startup scripts so the project does not depend
+on whatever JDK, Maven or Node happens to be first in the global `PATH`.
+
+1. Configure local tool paths once:
+
+```powershell
+Copy-Item .\scripts\local.env.example.ps1 .\scripts\local.env.ps1
+notepad .\scripts\local.env.ps1
+```
+
+2. Start Redis, backend and frontend:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1
+```
+
+3. Stop the started backend/frontend processes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\stop-dev.ps1
+```
+
 ## Notes
 
 - Teacher-created problems must have at least one testcase before they can be used in contests.

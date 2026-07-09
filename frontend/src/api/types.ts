@@ -120,6 +120,14 @@ export interface SubmissionInfo {
   createdAt?: string
 }
 
+export interface CustomTestResult {
+  status: string
+  stdout: string
+  stderr: string
+  timeUsedMs: number
+  errorMessage?: string
+}
+
 export interface SubmissionCaseInfo {
   id: number
   testcaseId: number

@@ -142,6 +142,83 @@ public class DockerJudgeRunner {
         }
     }
 
+    public CustomTestResult runCustom(Problem problem, String code, String input) {
+        Path dir = Path.of(workDir, "custom-" + UUID.randomUUID());
+        try {
+            Files.createDirectories(dir);
+            Files.writeString(dir.resolve("Main.cpp"), code, StandardCharsets.UTF_8);
+            ProcessResult compile = runProcess(Duration.ofSeconds(20), List.of(
+                    "docker", "run", "--rm", "--network", "none",
+                    "--memory=" + memoryMb(problem) + "m", "--cpus=1",
+                    "-v", dir.toAbsolutePath() + ":/work", "-w", "/work", dockerImage,
+                    "g++", "Main.cpp", "-std=c++17", "-O2", "-DONLINE_JUDGE", "-o", "Main"
+            ));
+            if (compile.timedOut() || compile.exitCode() != 0) {
+                String compileMessage = truncate(compile.stderr() + compile.stdout(), 4000);
+                if (isDockerUnavailable(compileMessage)) {
+                    return CustomTestResult.builder()
+                            .status("SYSTEM_ERROR")
+                            .stdout("")
+                            .stderr("")
+                            .timeUsedMs(0)
+                            .errorMessage("Docker is not running or unavailable.")
+                            .build();
+                }
+                return CustomTestResult.builder()
+                        .status("COMPILE_ERROR")
+                        .stdout("")
+                        .stderr(compileMessage)
+                        .timeUsedMs(0)
+                        .errorMessage(compileMessage)
+                        .build();
+            }
+
+            Files.writeString(dir.resolve("custom-input.txt"), input == null ? "" : input, StandardCharsets.UTF_8);
+            long start = System.nanoTime();
+            ProcessResult run = runProcess(Duration.ofMillis(timeLimitMs(problem) + 1000L), List.of(
+                    "docker", "run", "--rm", "--network", "none",
+                    "--memory=" + memoryMb(problem) + "m", "--cpus=1",
+                    "-v", dir.toAbsolutePath() + ":/work", "-w", "/work", dockerImage,
+                    "sh", "-lc", "timeout " + Math.max(1, timeLimitMs(problem) / 1000) + "s ./Main < custom-input.txt"
+            ));
+            int usedMs = (int) TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            if (run.timedOut() || run.exitCode() == 124) {
+                return CustomTestResult.builder()
+                        .status("TIME_LIMIT")
+                        .stdout(truncate(run.stdout(), 4000))
+                        .stderr(truncate(run.stderr(), 4000))
+                        .timeUsedMs(usedMs)
+                        .errorMessage("time limit exceeded")
+                        .build();
+            }
+            if (run.exitCode() != 0) {
+                return CustomTestResult.builder()
+                        .status("RUNTIME_ERROR")
+                        .stdout(truncate(run.stdout(), 4000))
+                        .stderr(truncate(run.stderr(), 4000))
+                        .timeUsedMs(usedMs)
+                        .errorMessage(truncate(run.stderr(), 4000))
+                        .build();
+            }
+            return CustomTestResult.builder()
+                    .status("FINISHED")
+                    .stdout(truncate(run.stdout(), 4000))
+                    .stderr(truncate(run.stderr(), 4000))
+                    .timeUsedMs(usedMs)
+                    .build();
+        } catch (Exception e) {
+            return CustomTestResult.builder()
+                    .status("SYSTEM_ERROR")
+                    .stdout("")
+                    .stderr("")
+                    .timeUsedMs(0)
+                    .errorMessage(e.getMessage())
+                    .build();
+        } finally {
+            deleteQuietly(dir);
+        }
+    }
+
     private ProcessResult runProcess(Duration timeout, List<String> command) throws IOException, InterruptedException {
         Process process = new ProcessBuilder(command).redirectErrorStream(false).start();
         boolean finished = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);

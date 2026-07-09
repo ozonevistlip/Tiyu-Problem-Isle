@@ -9,6 +9,7 @@ Thumbs.db
 .tmp/
 PROJECT_CONTEXT.md
 PROJECT_HANDOFF.md
+scripts/local.env.ps1
 
 # Logs
 *.log

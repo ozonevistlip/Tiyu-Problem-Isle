@@ -58,18 +58,25 @@ onUnmounted(() => window.clearInterval(timer))
 
 <style scoped lang="scss">
 .hint-panel {
-  padding: 16px;
-  border: 1px solid #d8e2ec;
-  border-radius: 8px;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.hint-panel:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 
 .hint-panel.is-locked {
-  background: #f7f8fa;
+  background: var(--surface-soft);
 }
 
 .hint-panel.is-open {
-  background: #fff8e6;
-  border-color: #f6d488;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-warning), transparent 88%), var(--surface-card));
+  border-color: color-mix(in srgb, var(--color-warning), transparent 42%);
 }
 
 .hint-head {
@@ -80,17 +87,19 @@ onUnmounted(() => window.clearInterval(timer))
 }
 
 .eyebrow {
-  color: #f59e0b;
+  color: var(--color-warning);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 h3 {
   margin: 4px 0 0;
+  color: var(--text-primary);
 }
 
 .hint-content {
   margin-top: 12px;
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 </style>
