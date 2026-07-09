@@ -1,0 +1,16 @@
+[Unit]
+Description=CppKid OJ Spring Boot backend
+After=network.target mysql.service redis-server.service docker.service
+Wants=mysql.service redis-server.service docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cppkid/backend
+EnvironmentFile=/opt/cppkid/deploy/cppkid.env
+ExecStart=/usr/bin/java -Xms256m -Xmx1024m -jar /opt/cppkid/backend/target/cppkid-oj-backend-1.0.0.jar
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
