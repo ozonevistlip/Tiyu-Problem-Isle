@@ -30,3 +30,6 @@ frontend/.env.local
 
 # Local database/runtime data
 mysql-data/
+
+# Deployment secrets
+deploy/*.env

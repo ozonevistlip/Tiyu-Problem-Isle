@@ -78,3 +78,25 @@ powershell -ExecutionPolicy Bypass -File .\scripts\stop-dev.ps1
 - Teacher-created problems must have at least one testcase before they can be used in contests.
 - Submissions with no configured testcases are rejected by the judge instead of being marked accepted.
 - Local database data, build outputs, logs and IDE files are intentionally ignored by Git.
+
+## Production Deployment
+
+Production server configuration has been split from local development:
+
+- Backend production profile: `backend/src/main/resources/application-prod.yml`
+- Frontend production API URL: `frontend/.env.production`
+- Server env file template and service files: `deploy/`
+
+Target production platform:
+
+```text
+Ubuntu 22.04 LTS 64-bit
+```
+
+The configured public entrypoint is:
+
+```text
+http://120.26.185.124/
+```
+
+See `deploy/README.md` for the server upload, MySQL, build, systemd and Nginx steps.

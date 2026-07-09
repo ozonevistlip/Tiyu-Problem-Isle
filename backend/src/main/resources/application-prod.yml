@@ -1,0 +1,28 @@
+server:
+  port: ${SERVER_PORT:8080}
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:cppkid_oj}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:cppkid}
+    password: ${MYSQL_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:3s}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expire-minutes: ${JWT_EXPIRE_MINUTES:1440}
+
+oj:
+  judge:
+    queue-name: ${OJ_JUDGE_QUEUE_NAME:judge_queue}
+    work-dir: ${OJ_JUDGE_WORK_DIR:/opt/cppkid/judge-work}
+    docker-image: ${OJ_JUDGE_DOCKER_IMAGE:gcc:13}
+    time-limit-ms: ${OJ_JUDGE_TIME_LIMIT_MS:2000}
+    memory-limit-mb: ${OJ_JUDGE_MEMORY_LIMIT_MB:128}
