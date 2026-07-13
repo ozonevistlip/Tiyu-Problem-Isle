@@ -25,6 +25,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'problems/:problemId/testcases', component: () => import('@/views/teacher/TestcaseEditView.vue') },
       { path: 'problems/:problemId/hints', component: () => import('@/views/teacher/ProblemHintEditView.vue') },
       { path: 'contests', component: () => import('@/views/teacher/ContestListView.vue') },
+      { path: 'code-visualizer', component: () => import('@/views/common/CodeVisualizerView.vue') },
       { path: 'contests/create', component: () => import('@/views/teacher/ContestEditView.vue') },
       { path: 'contests/:contestId/edit', component: () => import('@/views/teacher/ContestEditView.vue') },
       { path: 'contests/:contestId/problems', component: () => import('@/views/teacher/ContestProblemSelectView.vue') },
@@ -39,6 +40,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', component: () => import('@/views/student/StudentHomeView.vue') },
       { path: 'contests', component: () => import('@/views/student/StudentContestListView.vue') },
+      { path: 'code-visualizer', component: () => import('@/views/common/CodeVisualizerView.vue') },
       { path: 'contests/:contestId', component: () => import('@/views/student/StudentContestDetailView.vue') },
       { path: 'contests/:contestId/problems/:problemId', component: () => import('@/views/student/StudentProblemView.vue') },
       { path: 'contests/:contestId/submissions', component: () => import('@/views/student/StudentSubmissionListView.vue') },

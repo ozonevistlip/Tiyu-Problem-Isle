@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageHeader from '@/components/PageHeader.vue'
@@ -93,12 +93,14 @@ import ProblemStatusTag from '@/components/ProblemStatusTag.vue'
 import HintPanel from '@/components/HintPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import SubmissionStatusTag from '@/components/SubmissionStatusTag.vue'
+import { useCodeVisualizerStore } from '@/stores/codeVisualizer'
 import { getHintApi, getStudentContestApi, getStudentProblemApi, runCustomTestApi, studentSubmissionsApi, submitCodeApi } from '@/api/studentContest'
 import { getSubmissionApi } from '@/api/submission'
 import type { ContestInfo, ContestProblemInfo, CustomTestResult, HintView, SubmissionInfo } from '@/api/types'
 import { contestPhase, formatDateTime } from '@/utils/time'
 
 const route = useRoute()
+const codeVisualizer = useCodeVisualizerStore()
 const contestId = computed(() => Number(route.params.contestId))
 const problemId = computed(() => Number(route.params.problemId))
 const loading = ref(false)
@@ -114,6 +116,8 @@ const customOutput = ref('')
 const customTestResult = ref<CustomTestResult | null>(null)
 const runningCustomTest = ref(false)
 let pollTimer = 0
+
+watch(code, (value) => codeVisualizer.setCurrentCode(value), { immediate: true })
 
 const contestEnded = computed(() => (contest.value ? contestPhase(contest.value.startTime, contest.value.endTime) === 'ended' : false))
 const customStatusType = computed(() => {

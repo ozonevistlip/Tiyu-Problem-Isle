@@ -13,6 +13,10 @@
         <el-menu-item index="/teacher/classes">班级管理</el-menu-item>
         <el-menu-item index="/teacher/problems">题库管理</el-menu-item>
         <el-menu-item index="/teacher/contests">比赛管理</el-menu-item>
+        <el-menu-item index="/teacher/code-visualizer">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>代码可视化</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -40,6 +44,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { DataAnalysis } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 
@@ -144,5 +149,6 @@ function logout() {
   .el-main {
     padding: 16px;
   }
+
 }
 </style>
