@@ -28,7 +28,7 @@ export interface BlockNode extends SourceLocation {
   statements: StatementNode[]
 }
 
-export type StatementNode = DeclarationNode | ExpressionStatementNode | IfNode | ForNode | WhileNode | ReturnNode | OutputNode | InputNode | BreakNode | ContinueNode | BlockNode
+export type StatementNode = DeclarationNode | DeclarationListNode | ExpressionStatementNode | IfNode | ForNode | WhileNode | ReturnNode | OutputNode | InputNode | BreakNode | ContinueNode | BlockNode
 
 export interface DeclarationNode extends SourceLocation {
   kind: 'declaration'
@@ -36,6 +36,11 @@ export interface DeclarationNode extends SourceLocation {
   name: string
   dimensions: ExpressionNode[]
   initializer?: InitializerNode | ExpressionNode
+}
+
+export interface DeclarationListNode extends SourceLocation {
+  kind: 'declaration_list'
+  declarations: DeclarationNode[]
 }
 
 export interface InitializerNode extends SourceLocation {
@@ -57,7 +62,7 @@ export interface IfNode extends SourceLocation {
 
 export interface ForNode extends SourceLocation {
   kind: 'for'
-  initializer?: DeclarationNode | ExpressionNode
+  initializer?: DeclarationNode | DeclarationListNode | ExpressionNode
   condition?: ExpressionNode
   update?: ExpressionNode
   body: BlockNode

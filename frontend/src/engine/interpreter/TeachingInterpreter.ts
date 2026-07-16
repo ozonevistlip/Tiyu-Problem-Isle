@@ -100,6 +100,54 @@ export class TeachingInterpreter {
     return { kind: 'int', value: length }
   }
 
+  private callSort(arguments_: ExpressionNode[], line: number): RuntimeValue {
+    if (arguments_.length !== 2 && arguments_.length !== 3) this.fail(line, 'sort() 需要起始位置、结束位置，以及可选的比较器参数。')
+    const start = this.resolveArrayIterator(arguments_[0])
+    const end = this.resolveArrayIterator(arguments_[1])
+    const descending = arguments_.length === 3 && this.isDescendingSort(arguments_[2])
+    if (start.name !== end.name) this.fail(line, 'sort() 的两个位置需要来自同一个一维数组。')
+
+    const variable = this.lookup(start.name, line)
+    if (variable.value.kind !== 'array') this.fail(line, 'sort() 目前只支持一维数组。')
+    if (start.index < 0 || end.index < 0 || start.index > end.index || end.index > variable.value.length) {
+      this.fail(line, `sort() 的排序范围需要在 ${start.name} 的有效下标内，并且结束位置不能小于起始位置。`)
+    }
+
+    const previous = clone(variable.value)
+    const sorted = variable.value.values
+      .slice(start.index, end.index)
+      .sort((left, right) => (this.sortValue(left, line) - this.sortValue(right, line)) * (descending ? -1 : 1))
+    variable.value.values.splice(start.index, end.index - start.index, ...sorted)
+    variable.changed = true
+    variable.previousValue = previous
+
+    const range = end.index > start.index ? `${start.name}[${start.index}] 到 ${start.name}[${end.index - 1}]` : '空范围'
+    this.emit('array_write', line, `将 ${range} 按从${descending ? '大' : '小'}到${descending ? '小' : '大'}的顺序排序。`, { name: start.name, indices: `${start.index},${end.index - 1}`, value: this.describeValue(variable.value), previousValue: this.describeValue(previous) })
+    return voidValue()
+  }
+
+  private isDescendingSort(node: ExpressionNode) {
+    if (node.kind === 'call' && node.callee === 'greater' && node.arguments.length === 0) return true
+    if (node.kind === 'call' && node.callee === 'less' && node.arguments.length === 0) return false
+    this.fail(node.line, 'sort() 的第三个参数目前支持 greater<int>()（降序）或 less<int>()（升序）。')
+  }
+
+  private resolveArrayIterator(node: ExpressionNode): { name: string; index: number } {
+    if (node.kind === 'identifier') return { name: node.name, index: 0 }
+    if (node.kind === 'binary' && node.operator === '+') {
+      const base = this.resolveArrayIterator(node.left)
+      const offset = this.asInteger(this.evaluate(node.right), node.right.line, 'sort() 的数组位置')
+      return { name: base.name, index: base.index + offset }
+    }
+    this.fail(node.line, 'sort() 的参数需要是数组名加位置，例如 arr + 1。')
+  }
+
+  private sortValue(value: RuntimeValue, line: number): number {
+    if (value.kind === 'int' || value.kind === 'double') return value.value
+    if (value.kind === 'char') return value.value.charCodeAt(0)
+    this.fail(line, 'sort() 目前支持 int、double 和 char 数组。')
+  }
+
   private executeBlock(block: BlockNode, createScope = true): Signal | undefined {
     if (createScope) this.pushScope('代码块', block.line)
     for (const statement of block.statements) {
@@ -114,6 +162,7 @@ export class TeachingInterpreter {
     this.currentLine = statement.line
     switch (statement.kind) {
       case 'declaration': this.executeDeclaration(statement); return undefined
+      case 'declaration_list': this.executeDeclarationList(statement.declarations); return undefined
       case 'expression_statement': this.evaluate(statement.expression); return undefined
       case 'output': this.executeOutput(statement); return undefined
       case 'input': this.executeInput(statement); return undefined
@@ -154,6 +203,10 @@ export class TeachingInterpreter {
     this.fail(node.line, '第一版最多支持二维数组，例如 int matrix[2][3]。')
   }
 
+  private executeDeclarationList(declarations: DeclarationNode[]) {
+    declarations.forEach((declaration) => this.executeDeclaration(declaration))
+  }
+
   private executeIf(node: Extract<StatementNode, { kind: 'if' }>): Signal | undefined {
     const evaluation = this.evaluateCompacted(node.condition)
     const condition = this.asBoolean(evaluation.value)
@@ -169,7 +222,11 @@ export class TeachingInterpreter {
   private executeFor(node: Extract<StatementNode, { kind: 'for' }>): Signal | undefined {
     const loopId = `for-${++this.loopCounter}`
     this.pushScope('for 循环', node.line)
-    if (node.initializer) node.initializer.kind === 'declaration' ? this.executeDeclaration(node.initializer) : this.evaluate(node.initializer)
+    if (node.initializer) {
+      if (node.initializer.kind === 'declaration') this.executeDeclaration(node.initializer)
+      else if (node.initializer.kind === 'declaration_list') this.executeDeclarationList(node.initializer.declarations)
+      else this.evaluate(node.initializer)
+    }
     const context: LoopContext = { id: loopId, type: 'for', iteration: 0, line: node.line, condition: this.expressionText(node.condition), result: true }
     this.loops.push(context)
     this.emit('loop_enter', node.line, '进入 for 循环。', { loopId, loopType: 'for' })
@@ -235,6 +292,16 @@ export class TeachingInterpreter {
   private writeInputTarget(target: ExpressionNode, input: string) {
     if (target.kind === 'identifier') {
       const variable = this.lookup(target.name, target.line)
+      if (variable.value.kind === 'array' && variable.value.elementType === 'char') {
+        const characters = Array.from(input)
+        if (characters.length >= variable.value.length) this.fail(target.line, `输入的字符长度不能超过 ${variable.value.length - 1}，还需要保留一个位置存放结束字符 \\0。`)
+        const previous = clone(variable.value)
+        variable.value.values = Array.from({ length: variable.value.length }, (_, index) => ({ kind: 'char' as const, value: characters[index] ?? '\0' }))
+        variable.changed = true
+        variable.previousValue = previous
+        this.emit('console_input', target.line, `读取输入 ${input}，放进字符数组 ${variable.name}，并自动补上结束字符 \\0。`, { name: variable.name, text: input, value: this.describeValue(variable.value) })
+        return
+      }
       if (variable.value.kind === 'array' || variable.value.kind === 'array2d') {
         this.fail(target.line, `不能把输入直接写进整个数组 ${variable.name}，请指定下标，例如 ${variable.name}[i]。`)
       }
@@ -284,17 +351,19 @@ export class TeachingInterpreter {
     this.checkTimeout(node.line)
     switch (node.kind) {
       case 'literal': return this.literalValue(node)
-      case 'identifier': return this.readVariable(node.name, node.line)
+      case 'identifier': return node.name === 'endl' ? { kind: 'string', value: '\n' } : this.readVariable(node.name, node.line)
       case 'array_access': return this.readArray(node)
       case 'assignment': return this.assign(node)
       case 'unary': return this.evaluateUnary(node)
       case 'binary': return this.evaluateBinary(node)
-      case 'call': return this.callFunction(
-        node.callee,
-        node.arguments.map((item) => this.evaluate(item)),
-        node.line,
-        node.arguments.map((item) => this.expressionText(item))
-      )
+      case 'call':
+        if (node.callee === 'sort') return this.callSort(node.arguments, node.line)
+        return this.callFunction(
+          node.callee,
+          node.arguments.map((item) => this.evaluate(item)),
+          node.line,
+          node.arguments.map((item) => this.expressionText(item))
+        )
       case 'member_call': return this.evaluateMemberCall(node)
     }
   }
@@ -346,12 +415,12 @@ export class TeachingInterpreter {
 
   private evaluateMemberCall(node: Extract<ExpressionNode, { kind: 'member_call' }>): RuntimeValue {
     const value = this.readVariable(node.target.name, node.line)
-    if (value.kind === 'string' && node.member === 'length' && node.arguments.length === 0) {
-      const expression = `${node.target.name}.length()`
+    if (value.kind === 'string' && ['length', 'size'].includes(node.member) && node.arguments.length === 0) {
+      const expression = `${node.target.name}.${node.member}()`
       this.emit('string_read', node.line, `${expression} = ${value.value.length}。`, { name: node.target.name, length: value.value.length, value: value.value.length, expression })
       return { kind: 'int', value: value.value.length }
     }
-    this.fail(node.line, `暂时只支持字符串的 length()，不能执行 ${node.target.name}.${node.member}()。`)
+    this.fail(node.line, `暂时只支持字符串的 length() 或 size()，不能执行 ${node.target.name}.${node.member}()。`)
   }
 
   private assign(node: AssignmentNode): RuntimeValue {

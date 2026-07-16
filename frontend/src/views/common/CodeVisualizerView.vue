@@ -1,18 +1,11 @@
 <template>
   <main ref="workspaceRoot" class="cpp-workbench">
-    <header class="workbench-header">
-      <div class="product-title"><span class="product-mark">⌘</span><div><strong>C++ 执行可视化</strong><small>把每一次计算变成清晰的动态过程</small></div></div>
-      <div class="header-actions"><el-button :loading="store.parsing" type="primary" :icon="VideoPlay" @click="runCode">运行</el-button><el-button :icon="RefreshRight" @click="resetCode">重置</el-button><el-button circle :icon="FullScreen" title="全屏" @click="toggleFullscreen" /></div>
-    </header>
-
     <section class="workbench-main">
-      <article class="code-panel"><header><div><span>CPP SOURCE</span><h1>代码编辑器</h1></div><small>当前执行行会自动高亮</small></header><CodeEditor v-model="code" :highlight-line="store.currentSnapshot?.currentLine" :height="editorHeight" :font-size="fontSize" /><div v-if="diagnostic" class="diagnostic" :class="diagnostic.type"><b>第 {{ diagnostic.line }} 行</b>{{ diagnostic.message }}</div><footer><el-input v-model.number="fontSize" type="number" :min="12" :max="20" aria-label="代码字体大小"><template #append>px</template></el-input><span v-if="isDirty">代码已修改，请重新运行</span><span v-else>支持 C++ 教学子集</span></footer></article>
-      <VisualizationStage :event="store.currentEvent" :snapshot="store.currentSnapshot" />
-    </section>
-
-    <section class="runtime-strip">
-      <article data-runtime-role="console" class="console-panel"><header><span>输入 / 输出</span><small>cin 输入用空格分隔</small></header><el-input v-model="inputText" placeholder="例如：5 10 hello" /><pre>{{ consoleText }}</pre></article>
-      <article class="runtime-panel"><header><span>运行状态</span><el-tag :type="statusType" effect="plain">{{ statusText }}</el-tag></header><div class="runtime-grid"><div><small>当前步骤</small><b>{{ currentStep }} / {{ store.totalSteps }}</b></div><div><small>调用栈</small><b>{{ stackText }}</b></div><div><small>当前事件</small><b>{{ eventLabel }}</b></div></div><p>{{ store.currentEvent?.description || '运行后会显示当前步骤的易懂说明。' }}</p></article>
+      <div class="workbench-left">
+        <article class="code-panel"><header><div><span>CPP SOURCE</span><h1>代码编辑器</h1></div><div class="header-actions"><el-button size="small" :icon="MagicStick" @click="formatCode">格式化</el-button><el-button size="small" :loading="store.parsing" type="primary" :icon="VideoPlay" @click="runCode">运行</el-button></div></header><CodeEditor v-model="code" :highlight-line="store.currentSnapshot?.currentLine" :height="editorHeight" :font-size="fontSize" /><footer><span class="font-size-hint">Ctrl + 滚轮调整字号</span><span v-if="isDirty">代码已修改，请重新运行</span><span v-else>支持 C++ 教学子集</span></footer></article>
+        <article data-runtime-role="console" class="console-panel"><header><span>输入 / 输出</span><small>cin 输入用空格分隔</small></header><el-input v-model="inputText" placeholder="例如：5 10 hello" /><pre>{{ consoleText }}</pre></article>
+      </div>
+      <VisualizationStage :event="store.currentEvent" :snapshot="store.currentSnapshot" :diagnostic="diagnostic" :is-fullscreen="isFullscreen" @toggle-fullscreen="toggleFullscreen" />
     </section>
 
     <ExecutionControls class="sticky-controls" :index="store.currentIndex" :total="store.totalSteps" :playing="store.playing" :speed="store.speed" :at-start="store.atStart" :at-end="store.atEnd" @reset="store.reset" @previous="store.previous" @play="store.play" @pause="store.pause" @next="store.next" @seek="store.seek" @update:speed="store.speed = $event" />
@@ -21,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { FullScreen, RefreshRight, VideoPlay } from '@element-plus/icons-vue'
+import { MagicStick, VideoPlay } from '@element-plus/icons-vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ExecutionControls from '@/components/code-visualizer/ExecutionControls.vue'
 import VisualizationStage from '@/components/code-visualizer/VisualizationStage.vue'
@@ -56,26 +49,127 @@ const isDirty = ref(false)
 const isFullscreen = ref(false)
 let debounceTimer: number | undefined
 
-const editorHeight = computed(() => isFullscreen.value ? 'calc(100vh - 330px)' : '515px')
+const editorHeight = computed(() => isFullscreen.value ? '100%' : '515px')
 const diagnostic = computed(() => store.runtimeError ? { type: 'error', ...store.runtimeError } : store.parseErrors[0] ? { type: 'warning', ...store.parseErrors[0] } : null)
 const consoleText = computed(() => store.currentSnapshot?.consoleOutput.length ? store.currentSnapshot.consoleOutput.join('') : '等待程序输出…')
-const stackText = computed(() => store.currentSnapshot?.callStack.map((item) => item.name + '()').join(' → ') || '尚未调用函数')
-const eventLabel = computed(() => store.currentEvent?.type.split('_').join(' ') || '等待运行')
-const currentStep = computed(() => store.totalSteps ? store.currentIndex + 1 : 0)
-const statusText = computed(() => store.parsing ? '正在解析' : store.runtimeError ? '运行错误' : store.parseErrors.length ? '语法提示' : store.playing ? '正在播放' : store.result ? '已就绪' : '等待运行')
-const statusType = computed(() => store.runtimeError ? 'danger' : store.parseErrors.length ? 'warning' : store.playing ? 'success' : 'info')
 
+function formatCppCode(source: string) {
+  const lines: string[] = []
+  const initializerBraces: boolean[] = []
+  let current = ''
+  let indent = 0
+  let parentheses = 0
+  let index = 0
+
+  const normalize = (value: string) => value.trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    .replace(/\[\s+/g, '[')
+    .replace(/\s+\]/g, ']')
+    .replace(/\s*,\s*/g, ', ')
+
+  const flush = () => {
+    const line = normalize(current)
+    if (line) lines.push(`${'  '.repeat(indent)}${line}`)
+    current = ''
+  }
+
+  while (index < source.length) {
+    const character = source[index]
+    const next = source[index + 1] ?? ''
+
+    if (character === '\r') { index += 1; continue }
+    if (character === '#' && !current.trim()) {
+      const lineEnd = source.indexOf('\n', index)
+      lines.push(source.slice(index, lineEnd < 0 ? source.length : lineEnd).trim())
+      index = lineEnd < 0 ? source.length : lineEnd + 1
+      continue
+    }
+    if (character === '/' && next === '/') {
+      const lineEnd = source.indexOf('\n', index)
+      const comment = source.slice(index, lineEnd < 0 ? source.length : lineEnd).trim()
+      current = current.trim() ? `${current.trimEnd()} ${comment}` : comment
+      flush()
+      index = lineEnd < 0 ? source.length : lineEnd + 1
+      continue
+    }
+    if (character === '"' || character === "'") {
+      const quote = character
+      current += character
+      index += 1
+      while (index < source.length) {
+        const quoted = source[index]
+        current += quoted
+        index += 1
+        if (quoted === '\\' && index < source.length) { current += source[index]; index += 1; continue }
+        if (quoted === quote) break
+      }
+      continue
+    }
+    if (/\s/.test(character)) {
+      if (current && !current.endsWith(' ')) current += ' '
+      index += 1
+      continue
+    }
+    if (character === '(') { parentheses += 1; current += character; index += 1; continue }
+    if (character === ')') { parentheses = Math.max(0, parentheses - 1); current = current.trimEnd() + character; index += 1; continue }
+    if (character === ',') { current = current.trimEnd() + ', '; index += 1; continue }
+    if (character === '{') {
+      const inheritedInitializer = initializerBraces[initializerBraces.length - 1] === true
+      const isInitializer = inheritedInitializer || /(?:=|return)\s*$/.test(current.trim())
+      initializerBraces.push(isInitializer)
+      if (isInitializer) current = current.trimEnd() + '{'
+      else { current = current.trimEnd() + ' {'; flush(); indent += 1 }
+      index += 1
+      continue
+    }
+    if (character === '}') {
+      const isInitializer = initializerBraces.pop() ?? false
+      if (isInitializer) current = current.trimEnd() + '}'
+      else {
+        flush()
+        indent = Math.max(0, indent - 1)
+        const elseMatch = source.slice(index + 1).match(/^\s*else\b/)
+        if (elseMatch) { current = '} else'; index += elseMatch[0].length + 1; continue }
+        current = '}'
+        flush()
+      }
+      index += 1
+      continue
+    }
+    if (character === ';') {
+      current = current.trimEnd() + ';'
+      if (parentheses === 0) flush()
+      else current += ' '
+      index += 1
+      continue
+    }
+    if (character === '\n') { flush(); index += 1; continue }
+    current += character
+    index += 1
+  }
+
+  flush()
+  return lines.join('\n').trimEnd() + '\n'
+}
+
+function formatCode() {
+  code.value = formatCppCode(code.value)
+}
+
+function handleEditorWheel(event: WheelEvent) {
+  const target = event.target
+  if (!event.ctrlKey || !(target instanceof Element) || !target.closest('.code-editor')) return
+  event.preventDefault()
+  event.stopPropagation()
+  const nextSize = fontSize.value + (event.deltaY < 0 ? 1 : -1)
+  fontSize.value = Math.min(20, Math.max(12, nextSize))
+}
 async function runCode() {
   isDirty.value = false
   sharedCode.setCurrentCode(code.value)
   await store.run(code.value, inputText.value)
-}
-
-function resetCode() {
-  code.value = DEFAULT_CODE
-  inputText.value = ''
-  isDirty.value = true
-  store.clear()
 }
 
 async function toggleFullscreen() {
@@ -96,20 +190,22 @@ watch(code, (value) => {
 onMounted(() => {
   code.value = sharedCode.currentCode || DEFAULT_CODE
   document.addEventListener('fullscreenchange', syncFullscreen)
+  window.addEventListener('wheel', handleEditorWheel, { capture: true, passive: false })
 })
 
 onUnmounted(() => {
   if (debounceTimer !== undefined) window.clearTimeout(debounceTimer)
   document.removeEventListener('fullscreenchange', syncFullscreen)
+  window.removeEventListener('wheel', handleEditorWheel, { capture: true })
   store.pause()
 })
 </script>
 
 <style scoped lang="scss">
-.cpp-workbench { display: grid; gap: 14px; max-width: 1680px; min-height: calc(100vh - 112px); margin: 0 auto; }.cpp-workbench:fullscreen { min-height: 100vh; padding: 18px; overflow: auto; background: var(--bg-gradient); }
+.cpp-workbench { display: grid; align-content: start; gap: 14px; max-width: 1680px; min-height: calc(100vh - 112px); margin: 0 auto; }.cpp-workbench:fullscreen { box-sizing: border-box; grid-template-rows: minmax(0, 1fr) auto; width: 100vw; height: 100vh; min-height: 0; padding: 18px; overflow: hidden; background: var(--bg-gradient); }
 .workbench-header { display: flex; gap: 18px; align-items: center; justify-content: space-between; padding: 13px 16px; background: var(--surface-glass); border: 1px solid var(--border-soft); border-radius: 16px; box-shadow: var(--shadow-soft); backdrop-filter: blur(12px); }.product-title, .header-actions { display: flex; gap: 10px; align-items: center; }.product-mark { display: grid; width: 38px; height: 38px; place-items: center; color: var(--text-inverse); background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); border-radius: 12px; font-size: 21px; box-shadow: 0 10px 20px color-mix(in srgb, var(--color-primary), transparent 62%); }.product-title > div { display: grid; gap: 2px; }.product-title strong { color: var(--text-primary); }.product-title small { color: var(--text-muted); font-size: 11px; }.header-actions { flex-wrap: wrap; justify-content: flex-end; }
-.workbench-main { display: grid; grid-template-columns: minmax(360px, 38fr) minmax(480px, 62fr); gap: 14px; min-height: 0; }.code-panel { display: grid; gap: 11px; padding: 15px; background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 18px; box-shadow: var(--shadow-soft); }.code-panel > header, .console-panel header, .runtime-panel header { display: flex; gap: 12px; align-items: center; justify-content: space-between; }.code-panel header span { color: var(--color-primary); font-size: 10px; font-weight: 900; letter-spacing: .1em; }.code-panel h1 { margin: 4px 0 0; color: var(--text-primary); font-size: 16px; }.code-panel header small, .console-panel small { color: var(--text-muted); font-size: 11px; }.code-panel footer { display: flex; gap: 10px; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 12px; font-weight: 700; }.code-panel footer .el-input { width: 90px; }.diagnostic { padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.6; }.diagnostic b { margin-right: 8px; }.diagnostic.warning { color: #a46105; background: #fff7e8; border: 1px solid #f8d795; }.diagnostic.error { color: #b4232a; background: #fff1f1; border: 1px solid #f6c5c7; }
-.runtime-strip { display: grid; grid-template-columns: minmax(360px, 38fr) minmax(480px, 62fr); gap: 14px; }.console-panel, .runtime-panel { display: grid; gap: 10px; padding: 14px 16px; background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: var(--shadow-soft); }.console-panel header span, .runtime-panel header span { color: var(--text-primary); font-size: 14px; font-weight: 800; }.console-panel pre { min-height: 64px; max-height: 130px; margin: 0; padding: 11px; overflow: auto; color: #9ae6b4; white-space: pre-wrap; background: #0e1828; border-radius: 10px; font-family: Consolas, monospace; font-size: 12px; }.runtime-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }.runtime-grid div { display: grid; gap: 3px; padding: 9px; background: var(--surface-soft); border-radius: 10px; }.runtime-grid small { color: var(--text-muted); font-size: 10px; }.runtime-grid b { overflow: hidden; color: var(--color-primary); text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }.runtime-panel p { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }.sticky-controls { position: sticky; bottom: 12px; z-index: 10; }
-@media (max-width: 1120px) { .workbench-main, .runtime-strip { grid-template-columns: 1fr; }.code-panel { order: 1; } }
-@media (max-width: 650px) { .workbench-header { align-items: flex-start; flex-direction: column; }.header-actions { justify-content: flex-start; }.runtime-grid { grid-template-columns: 1fr; }.code-panel footer { align-items: flex-start; flex-direction: column; } }
+.workbench-main { display: grid; grid-template-columns: minmax(360px, 38fr) minmax(480px, 62fr); gap: 14px; min-height: calc(100vh - 190px); }.cpp-workbench:fullscreen .workbench-main { min-height: 0; height: 100%; }.workbench-left { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 14px; min-width: 0; min-height: 0; }.code-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 11px; min-height: 0; overflow: hidden; padding: 15px; background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 18px; box-shadow: var(--shadow-soft); }.code-panel > header, .console-panel header { display: flex; gap: 12px; align-items: center; justify-content: space-between; }.code-panel header span { color: var(--color-primary); font-size: 10px; font-weight: 900; letter-spacing: .1em; }.code-panel h1 { margin: 4px 0 0; color: var(--text-primary); font-size: 16px; }.code-panel header small, .console-panel small { color: var(--text-muted); font-size: 11px; }.code-panel footer { display: flex; gap: 10px; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 12px; font-weight: 700; }.code-panel footer .el-input { width: 90px; }.diagnostic { padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.6; }.diagnostic b { margin-right: 8px; }.diagnostic.warning { color: #a46105; background: #fff7e8; border: 1px solid #f8d795; }.diagnostic.error { color: #b4232a; background: #fff1f1; border: 1px solid #f6c5c7; }
+.console-panel { display: grid; gap: 10px; padding: 14px 16px; background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: var(--shadow-soft); }.console-panel header span { color: var(--text-primary); font-size: 14px; font-weight: 800; }.console-panel pre { min-height: 64px; max-height: 130px; margin: 0; padding: 11px; overflow: auto; color: #9ae6b4; white-space: pre-wrap; background: #0e1828; border-radius: 10px; font-family: Consolas, monospace; font-size: 12px; }.sticky-controls { position: sticky; bottom: 12px; z-index: 10; }.cpp-workbench:fullscreen .sticky-controls { position: static; }
+@media (max-width: 1120px) { .workbench-main { grid-template-columns: 1fr; }.workbench-left { grid-template-rows: auto auto; }.code-panel { order: 1; } }
+@media (max-width: 650px) { .workbench-header { align-items: flex-start; flex-direction: column; }.header-actions { justify-content: flex-start; }.code-panel footer { align-items: flex-start; flex-direction: column; } }
 </style>

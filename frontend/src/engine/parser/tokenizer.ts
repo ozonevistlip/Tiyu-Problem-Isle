@@ -72,7 +72,7 @@ export class Tokenizer {
     const quote = this.advance()
     let value = ''
     while (!this.finished() && this.peek() !== quote) {
-      if (this.peek() === '\\') { this.advance(); const escaped = this.advance(); value += ({ n: '\n', t: '\t', '"': '"', "'": "'", '\\': '\\' } as Record<string, string>)[escaped] ?? escaped }
+      if (this.peek() === '\\') { this.advance(); const escaped = this.advance(); value += ({ n: '\n', t: '\t', '0': '\0', '"': '"', "'": "'", '\\': '\\' } as Record<string, string>)[escaped] ?? escaped }
       else value += this.advance()
     }
     if (this.finished()) this.errors.push({ line, column, message: '字符串或字符没有找到结束引号。' })
