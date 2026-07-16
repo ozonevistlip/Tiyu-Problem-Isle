@@ -1,6 +1,6 @@
 <template>
   <el-container class="app-layout">
-    <el-aside width="230px">
+    <el-aside width="230px" data-pet-exclusion="student-navigation">
       <div class="brand">
         <span>C++</span>
         <div>
@@ -18,7 +18,7 @@
       </el-menu>
     </el-aside>
     <el-container>
-      <el-header>
+      <el-header data-pet-exclusion="student-header">
         <div class="header-title">
           <strong>欢迎回来，{{ user.userInfo?.realName || user.userInfo?.username }}</strong>
           <small>今天也向下一关出发吧</small>
@@ -36,18 +36,25 @@
         </router-view>
       </el-main>
     </el-container>
+    <PetWidget />
   </el-container>
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
+import PetWidget from '@/components/pet/PetWidget.vue'
+import { usePet } from '@/composables/usePet'
 
 const user = useUserStore()
 const router = useRouter()
+const pet = usePet()
+
+onMounted(() => pet.welcome())
 function logout() {
   user.logout()
   ElMessage.success('已退出，期待下次继续学习！')
