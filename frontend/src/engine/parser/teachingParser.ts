@@ -1,6 +1,6 @@
 import { Tokenizer, type Token } from './tokenizer'
 import type {
-  ArrayAccessNode, AssignmentNode, BlockNode, DeclarationNode, ExpressionNode, FunctionNode, InitializerNode, ParseError,
+  ArrayAccessNode, AssignmentNode, BlockNode, DeclarationListNode, DeclarationNode, ExpressionNode, FunctionNode, InitializerNode, ParseError,
   PrimitiveType, ProgramNode, StatementNode
 } from '../types'
 
@@ -68,16 +68,22 @@ export class TeachingParser {
     return { kind: 'expression_statement', expression, line: expression.line, column: expression.column }
   }
 
-  private parseDeclaration(requireSemicolon: boolean): DeclarationNode {
+  private parseDeclaration(requireSemicolon: boolean): DeclarationNode | DeclarationListNode {
     const typeToken = this.advance()
     const dataType = typeToken.value as PrimitiveType
-    const name = this.consume('identifier', '变量需要有名字。')
-    const dimensions: ExpressionNode[] = []
-    while (this.matchValue('[')) { dimensions.push(this.parseExpression()); this.consumeValue(']', '数组下标后面需要 ]。') }
-    let initializer: InitializerNode | ExpressionNode | undefined
-    if (this.matchValue('=')) initializer = this.checkValue('{') ? this.parseInitializer() : this.parseExpression()
+    const declarations: DeclarationNode[] = []
+    do {
+      const name = this.consume('identifier', '变量需要有名字。')
+      const dimensions: ExpressionNode[] = []
+      while (this.matchValue('[')) { dimensions.push(this.parseExpression()); this.consumeValue(']', '数组下标后面需要 ]。') }
+      let initializer: InitializerNode | ExpressionNode | undefined
+      if (this.matchValue('=')) initializer = this.checkValue('{') ? this.parseInitializer() : this.parseExpression()
+      declarations.push({ kind: 'declaration', dataType, name: name.value, dimensions, initializer, line: typeToken.line, column: typeToken.column })
+    } while (this.matchValue(','))
     if (requireSemicolon) this.consumeValue(';', '变量声明后面需要分号 ;。')
-    return { kind: 'declaration', dataType, name: name.value, dimensions, initializer, line: typeToken.line, column: typeToken.column }
+    return declarations.length === 1
+      ? declarations[0]
+      : { kind: 'declaration_list', declarations, line: typeToken.line, column: typeToken.column }
   }
 
   private parseInitializer(): InitializerNode {
@@ -103,7 +109,7 @@ export class TeachingParser {
 
   private parseFor(token: Token): StatementNode {
     this.consumeValue('(', 'for 后面需要 (。')
-    let initializer: DeclarationNode | ExpressionNode | undefined
+    let initializer: DeclarationNode | DeclarationListNode | ExpressionNode | undefined
     if (!this.checkValue(';')) initializer = this.isType(this.peek()) ? this.parseDeclaration(false) : this.parseExpression()
     this.consumeValue(';', 'for 的第一部分后面需要 ;。')
     const condition = this.checkValue(';') ? undefined : this.parseExpression()
@@ -198,6 +204,13 @@ export class TeachingParser {
     if (token.value === '(') { const expression = this.parseExpression(); this.consumeValue(')', '表达式缺少右括号 )。'); return expression }
     if (token.kind !== 'identifier') this.error(token, `暂时不能把 “${token.value}” 当作表达式。`)
     const identifier = { kind: 'identifier' as const, name: token.value, line: token.line, column: token.column }
+    if (this.isTemplateCallAhead()) {
+      this.advance()
+      this.advance()
+      this.advance()
+      this.consumeValue('(', '比较器后面需要有圆括号，例如 greater<int>()。')
+      return { kind: 'call', callee: identifier.name, arguments: this.parseArguments(), line: token.line, column: token.column }
+    }
     if (this.matchValue('(')) {
       const arguments_ = this.parseArguments()
       return { kind: 'call', callee: identifier.name, arguments: arguments_, line: token.line, column: token.column }
@@ -217,6 +230,13 @@ export class TeachingParser {
     if (!this.checkValue(')')) { do arguments_.push(this.parseExpression()); while (this.matchValue(',')) }
     this.consumeValue(')', '函数调用缺少右括号 )。')
     return arguments_
+  }
+
+  private isTemplateCallAhead() {
+    return this.peek().value === '<'
+      && ['identifier', 'keyword'].includes(this.tokens[this.index + 1]?.kind ?? '')
+      && this.tokens[this.index + 2]?.value === '>'
+      && this.tokens[this.index + 3]?.value === '('
   }
 
   private consumeType() { const token = this.peek(); if (!this.isType(token)) this.error(token, '这里需要 int、double、bool、char、string 或 void。'); return this.advance().value as PrimitiveType }
