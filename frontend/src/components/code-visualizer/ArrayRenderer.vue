@@ -12,8 +12,15 @@
           <strong>{{ pointerText }}</strong><i />
         </div>
         <div class="array-cells">
-          <div v-for="(item, index) in value.values" :key="index" class="array-slot" :class="{ 'is-active': index === activeIndex }">
-            <b>{{ format(item, index) }}</b><small>{{ index }}</small>
+          <div
+            v-for="(item, index) in value.values"
+            :key="index"
+            class="array-slot"
+            :class="{ 'is-active': index === activeIndex }"
+            data-runtime-array-slot
+            :data-array-index="index"
+          >
+            <b>{{ format(item) }}</b><small>{{ index }}</small>
           </div>
         </div>
       </div>
@@ -28,10 +35,9 @@ import type { RuntimeArray, RuntimeValue } from '@/engine/types'
 const props = defineProps<{ name: string; value: RuntimeArray; activeIndices?: number[]; pointerLabels?: string[] }>()
 const activeIndex = computed(() => props.activeIndices?.[props.activeIndices.length - 1] ?? -1)
 const pointerText = computed(() => props.pointerLabels?.join(', ') || '下标')
-const terminatorIndex = computed(() => props.value.elementType === 'char' ? props.value.values.findIndex((item) => item.kind === 'char' && item.value === '\0') : -1)
-function format(value: RuntimeValue, index: number) {
+function format(value: RuntimeValue) {
   if (value.kind === 'void') return ''
-  if (value.kind === 'char' && value.value === '\0') return index === terminatorIndex.value ? '\\0' : ''
+  if (value.kind === 'char' && value.value === '\0') return '\\0'
   return value.kind === 'array' || value.kind === 'array2d' ? '…' : String(value.value)
 }
 </script>
@@ -39,7 +45,7 @@ function format(value: RuntimeValue, index: number) {
 <style scoped lang="scss">
 .array-renderer { display: grid; gap: 4px; min-width: 0; padding: 6px 8px; background: color-mix(in srgb, var(--surface-card), var(--surface-soft) 42%); border: 1px solid var(--border-color); border-radius: 10px; }
 header { display: flex; justify-content: space-between; gap: 10px; color: var(--text-primary); }
-header span { color: var(--text-muted); font-size: 11px; }
+header span { color: var(--text-muted); font-size: 14px; font-weight: 700; }
 .array-scroll { min-width: 0; overflow-x: auto; }
 .array-track { position: relative; width: max-content; padding-top: 21px; }
 .array-cells { display: flex; gap: 4px; padding: 1px 0; }

@@ -1,35 +1,46 @@
 <template>
   <el-container class="app-layout">
-    <el-aside width="240px" data-pet-exclusion="teacher-navigation">
-      <div class="brand">
-        <span>C++</span>
-        <div>
-          <strong>教师工作台</strong>
-          <small>组织课堂挑战</small>
+    <el-aside :width="isCollapsed ? '72px' : '240px'" data-pet-exclusion="teacher-navigation">
+      <div class="sidebar-header" :class="{ 'is-collapsed': isCollapsed }">
+        <div v-if="!isCollapsed" class="brand">
+          <span>C++</span>
+          <div>
+            <strong>教师工作台</strong>
+            <small>组织课堂挑战</small>
+          </div>
         </div>
+        <el-button class="sidebar-toggle" text circle :title="isCollapsed ? '展开侧边栏' : '收起侧边栏'" :aria-label="isCollapsed ? '展开侧边栏' : '收起侧边栏'" @click="isCollapsed = !isCollapsed">
+          <el-icon :size="20"><Expand v-if="isCollapsed" /><Fold v-else /></el-icon>
+        </el-button>
       </div>
-      <el-menu router :default-active="$route.path">
-        <el-menu-item index="/teacher">首页</el-menu-item>
-        <el-menu-item index="/teacher/classes">班级管理</el-menu-item>
-        <el-menu-item index="/teacher/problems">题库管理</el-menu-item>
-        <el-menu-item index="/teacher/contests">比赛管理</el-menu-item>
+      <el-menu router :default-active="$route.path" :collapse="isCollapsed" :collapse-transition="false">
+        <el-menu-item index="/teacher">
+          <el-icon><HomeFilled /></el-icon>
+          <template #title>首页</template>
+        </el-menu-item>
+        <el-menu-item index="/teacher/classes">
+          <el-icon><School /></el-icon>
+          <template #title>班级管理</template>
+        </el-menu-item>
+        <el-menu-item index="/teacher/problems">
+          <el-icon><Collection /></el-icon>
+          <template #title>题库管理</template>
+        </el-menu-item>
+        <el-menu-item index="/teacher/contests">
+          <el-icon><Trophy /></el-icon>
+          <template #title>比赛管理</template>
+        </el-menu-item>
         <el-menu-item index="/teacher/code-visualizer">
           <el-icon><DataAnalysis /></el-icon>
-          <span>代码可视化</span>
+          <template #title>代码可视化</template>
+        </el-menu-item>
+        <el-menu-item index="/teacher/account">
+          <el-icon><UserFilled /></el-icon>
+          <template #title>管理自身账号</template>
         </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
-      <el-header data-pet-exclusion="teacher-header">
-        <div class="header-title">
-          <strong>{{ user.userInfo?.realName || user.userInfo?.username }} 的课堂空间</strong>
-          <small>清晰管理班级、题目与比赛</small>
-        </div>
-        <div class="header-actions">
-          <ThemeSwitcher />
-          <el-button text @click="logout">退出</el-button>
-        </div>
-      </el-header>
       <el-main>
         <router-view v-slot="{ Component }">
           <transition name="page-fade" mode="out-in">
@@ -43,25 +54,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { DataAnalysis } from '@element-plus/icons-vue'
-import { useUserStore } from '@/stores/user'
-import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
+import { onMounted, ref } from 'vue'
+import { Collection, DataAnalysis, Expand, Fold, HomeFilled, School, Trophy, UserFilled } from '@element-plus/icons-vue'
 import PetWidget from '@/components/pet/PetWidget.vue'
 import { usePet } from '@/composables/usePet'
 
-const user = useUserStore()
-const router = useRouter()
+const isCollapsed = ref(false)
 const pet = usePet()
 
 onMounted(() => pet.welcome('老师好，今天也一起看看同学们的学习进度吧！'))
-function logout() {
-  user.logout()
-  ElMessage.success('已退出教师工作台')
-  void router.replace('/login')
-}
 </script>
 
 <style scoped lang="scss">
@@ -77,14 +78,28 @@ function logout() {
   border-right: 1px solid var(--border-color);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(18px);
+  overflow: hidden;
+  transition: width .28s cubic-bezier(.22, 1, .36, 1);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 78px;
+  padding: 0 12px 0 18px;
+}
+
+.sidebar-header.is-collapsed {
+  justify-content: center;
+  padding: 0;
 }
 
 .brand {
   display: flex;
   gap: 10px;
   align-items: center;
-  min-height: 78px;
-  padding: 0 18px;
+  min-width: 0;
 }
 
 .brand span {
@@ -99,33 +114,50 @@ function logout() {
   font-weight: 800;
 }
 
-.brand strong,
-.header-title strong {
+.brand strong {
   display: block;
   color: var(--text-primary);
 }
 
-.brand small,
-.header-title small {
+.brand small {
   color: var(--text-muted);
   font-size: 12px;
 }
 
-.el-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 74px;
-  gap: 16px;
-  background: var(--surface-glass);
-  border-bottom: 1px solid var(--border-color);
-  backdrop-filter: blur(18px);
+.sidebar-toggle {
+  flex: 0 0 auto;
+  color: var(--text-muted);
 }
 
-.header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+.sidebar-toggle:hover {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary), transparent 90%);
+}
+
+.el-menu {
+  border-right: 0;
+}
+
+:deep(.el-menu--collapse) {
+  width: 72px;
+}
+
+:deep(.el-menu--collapse .el-menu-item) {
+  justify-content: center;
+  padding: 0 !important;
+}
+
+:deep(.el-menu--collapse .el-menu-item:hover) {
+  transform: none;
+}
+
+:deep(.el-menu--collapse .el-menu-item .el-icon) {
+  margin: 0;
+  transform: translateX(-12px);
+}
+
+:deep(.el-menu-item .el-icon) {
+  font-size: 18px;
 }
 
 .el-main {
@@ -141,16 +173,12 @@ function logout() {
     width: 100% !important;
   }
 
-  .el-header {
-    height: auto;
-    padding: 14px;
-    align-items: flex-start;
-    flex-direction: column;
+  .sidebar-header.is-collapsed {
+    min-height: 56px;
   }
 
-  .header-actions {
-    width: 100%;
-    justify-content: space-between;
+  .sidebar-header.is-collapsed + .el-menu {
+    display: none;
   }
 
   .el-main {

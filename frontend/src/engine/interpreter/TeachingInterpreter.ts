@@ -122,7 +122,19 @@ export class TeachingInterpreter {
     variable.previousValue = previous
 
     const range = end.index > start.index ? `${start.name}[${start.index}] 到 ${start.name}[${end.index - 1}]` : '空范围'
-    this.emit('array_write', line, `将 ${range} 按从${descending ? '大' : '小'}到${descending ? '小' : '大'}的顺序排序。`, { name: start.name, indices: `${start.index},${end.index - 1}`, value: this.describeValue(variable.value), previousValue: this.describeValue(previous) })
+    this.emit('array_write', line, `将 ${range} 按从${descending ? '大' : '小'}到${descending ? '小' : '大'}的顺序排序。`, {
+      name: start.name,
+      indices: `${start.index},${end.index - 1}`,
+      value: this.describeValue(variable.value),
+      previousValue: this.describeValue(previous),
+      animationKind: 'sort',
+      animationDurationMs: 3200,
+      rangeStart: start.index,
+      rangeEnd: end.index,
+      direction: descending ? 'descending' : 'ascending',
+      previousValues: previous.values.map((item) => this.describeValue(item)),
+      sortedValues: variable.value.values.map((item) => this.describeValue(item))
+    })
     return voidValue()
   }
 

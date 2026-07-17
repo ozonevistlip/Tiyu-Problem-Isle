@@ -20,11 +20,16 @@ export const useExecutionStore = defineStore('execution', () => {
   const atStart = computed(() => currentIndex.value === 0)
   const atEnd = computed(() => currentIndex.value >= totalSteps.value - 1)
 
-  function clearTimer() { if (timer !== undefined) window.clearInterval(timer); timer = undefined }
+  function clearTimer() { if (timer !== undefined) window.clearTimeout(timer); timer = undefined }
   function pause() { playing.value = false; clearTimer() }
   function reset() { pause(); currentIndex.value = 0 }
   function previous() { pause(); currentIndex.value = Math.max(0, currentIndex.value - 1) }
-  function next() { if (atEnd.value) { pause(); return }; currentIndex.value += 1 }
+  function advance() {
+    if (atEnd.value) { pause(); return false }
+    currentIndex.value += 1
+    return true
+  }
+  function next() { pause(); advance() }
   function seek(index: number) {
     pause()
     const lastIndex = Math.max(0, totalSteps.value - 1)
@@ -34,8 +39,18 @@ export const useExecutionStore = defineStore('execution', () => {
     if (!result.value || playing.value) return
     if (atEnd.value) currentIndex.value = 0
     playing.value = true
+    scheduleNext()
+  }
+  function scheduleNext() {
     clearTimer()
-    timer = window.setInterval(next, Math.max(120, 850 / speed.value))
+    const animationDuration = Number(currentEvent.value?.data?.animationDurationMs ?? 0)
+    const baseDelay = animationDuration > 0 ? animationDuration + 220 : 850
+    const playbackRate = Math.max(0.25, speed.value / 2)
+    timer = window.setTimeout(() => {
+      timer = undefined
+      if (!playing.value || !advance()) return
+      scheduleNext()
+    }, Math.max(120, baseDelay / playbackRate))
   }
   function begin() { reset(); play() }
 

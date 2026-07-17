@@ -34,7 +34,7 @@ import { animateTraceEvent } from '@/visualization/traceAnimations'
 import type { BaseTraceEvent, ExecutionSnapshot, RuntimeArray, RuntimeArray2D, RuntimeString, RuntimeVariable } from '@/engine/types'
 
 type StageDiagnostic = { type: string; line: number; message: string }
-const props = defineProps<{ event: BaseTraceEvent | null; snapshot: ExecutionSnapshot | null; diagnostic?: StageDiagnostic | null; isFullscreen?: boolean }>()
+const props = withDefaults(defineProps<{ event: BaseTraceEvent | null; snapshot: ExecutionSnapshot | null; diagnostic?: StageDiagnostic | null; isFullscreen?: boolean; speed?: number }>(), { speed: 1 })
 const emit = defineEmits<{ 'toggle-fullscreen': [] }>()
 const stageRoot = ref<HTMLElement | null>(null)
 
@@ -143,7 +143,7 @@ function pointerLabels(name: string) { return inferredBinding(name).labels }
 
 watch(
   () => props.event?.id,
-  async () => { await nextTick(); animateTraceEvent(stageRoot.value, props.event) }
+  async () => { await nextTick(); animateTraceEvent(stageRoot.value, props.event, props.speed) }
 )
 </script>
 
