@@ -1,48 +1,143 @@
-# Tiyu Problem Isle
+# CppKid OJ
 
-面向课堂教学的 C++ 在线评测系统，适合教师组织课程、题库和比赛，也方便学生在线编写、运行和提交代码。
+面向 C++ 入门课堂的在线评测与教学平台。教师可以组织班级、题库和比赛，学生可以在线编写、运行和提交 C++17 代码；项目同时提供浏览器端代码执行可视化和 PixiJS 互动学习宠物，让抽象的程序执行过程与判题反馈更直观。
 
-## 功能概览
+## 当前功能
 
-- 教师端：班级管理、学生管理、题目管理、测试点管理、提示管理、比赛管理、提交记录和排行榜。
-- 学生端：参加比赛、查看题目、编写 C++17 代码、解锁提示、提交代码、查看评测结果和排行榜。
-- 代码可视化：在教师端和学生端通过侧边栏进入代码可视化功能区，目前支持解析并展示一维 `int` 数组。
-- 在线评测：后端通过 Redis 队列调度评测任务，并使用 Docker 中的 `gcc:13` 环境编译运行 C++17 代码。
+### 在线评测与课堂管理
+
+- 教师端：班级与学生管理、题目与测试点管理、提示管理、比赛发布、提交记录和排行榜。
+- 学生端：比赛列表、题目作答、Monaco C++17 编辑器、提示解锁、代码自测、正式提交、评测详情和排行榜。
+- 评测服务：Redis 队列调度提交，Docker `gcc:13` 环境负责编译并运行 C++17 代码。
+- 身份认证：JWT 登录，区分教师和学生角色。
+
+### C++ 代码执行可视化
+
+代码可视化在浏览器内完成，不依赖后端执行用户代码：
+
+```text
+C++ 源码
+→ Tree-sitter C++ 语法校验
+→ 教学 AST
+→ 浏览器端解释器
+→ TraceEvent 与状态快照
+→ GSAP + SVG/DOM 动画
+```
+
+当前教学子集支持：
+
+- 基础变量和赋值；
+- 算术、比较与逻辑运算；
+- `if / else`、`for / while`、`break / continue`；
+- 一维数组、二维数组和字符串；
+- `cin / cout`；
+- 简单函数、参数、调用和 `return`。
+
+工作台支持单步执行、自动播放、暂停、上一步、重置和速度调节，并对数组规模、循环次数、调用深度、总步骤和执行时间设置安全上限。学生在题目编辑器中修改的代码可以同步到可视化页面。
+
+### 网页互动宠物
+
+教师端和学生端页面均挂载了 Vue 3 + Pinia + PixiJS 互动宠物，主要能力包括：
+
+- 待机、开心、错误、成功、睡眠、惊讶、思考和说话等状态；
+- 星星、彩纸、问号、感叹号、睡眠符号、速度线和空气粒子；
+- HTML 气泡、设置菜单、静音、自动行为、低性能模式和本地配置持久化；
+- 鼠标、触摸和触控笔统一 Pointer Events 交互；
+- 点击与拖拽区分、抓取偏移、Pointer Capture 和速度平滑采样；
+- 跟手拖动、方向动画、高速扑翼、短暂滑翔、安全边缘吸附和落地回弹；
+- `prefers-reduced-motion`、移动端和低性能设备降级；
+- 导航栏、编辑器、按钮和弹窗等 `data-pet-exclusion` 禁入区域避让。
+
+拖拽状态流程：
+
+```text
+idle
+→ pointerDown
+→ dragging
+→ released
+→ gliding / flyingToEdge
+→ landing
+→ idle
+```
+
+宠物使用透明 WebP 动画图集，包含待机、左右奔跑、挥手、跳跃、失败、等待、运行和检查等帧序列：
+
+```text
+frontend/src/assets/pet/winged-kuriboh-spritesheet.webp
+```
+
+开发环境可直接访问以下页面测试宠物状态、粒子和拖拽数据：
+
+```text
+http://127.0.0.1:5173/pet-preview
+```
+
+`/pet-preview` 只在 Vite 开发环境注册，不进入生产路由。
+
+业务页面不要直接操作 Pixi Sprite，请通过 `usePet()` 发送事件：
+
+```ts
+import { usePet } from '@/composables/usePet'
+
+const pet = usePet()
+
+pet.welcome()
+pet.codeStart()
+pet.thinking()
+pet.codeError('再检查一下括号和分号吧。')
+pet.codeSuccess()
+pet.exerciseComplete()
+pet.showMessage('先看看输入范围。', { bubbleType: 'tip' })
+pet.hide()
+pet.show()
+```
+
+宠物模块主要位于：
+
+```text
+frontend/src/components/pet/  Vue 气泡、菜单、画布和组件装配
+frontend/src/pet/             Pixi 渲染、状态机、拖拽、移动、图集和粒子
+frontend/src/stores/petStore.ts
+frontend/src/composables/usePet.ts
+```
 
 ## 技术栈
 
 | 模块 | 技术 |
 | --- | --- |
-| 后端 | Spring Boot 3、JDK 17、MyBatis-Plus、MySQL、Redis |
-| 前端 | Vue 3、Vite、TypeScript、Element Plus、Pinia、Vue Router、Axios、Monaco Editor |
+| 前端基础 | Vue 3、TypeScript、Composition API、Vite、Vue Router、Pinia、Axios |
+| 前端界面 | Element Plus、SCSS、Monaco Editor |
+| 可视化 | Tree-sitter、Web Worker、GSAP、SVG/DOM |
+| 互动宠物 | PixiJS 8、动画图集、Pointer Events |
+| 后端 | Spring Boot 3.3、JDK 17、MyBatis-Plus、MySQL、Redis、JWT |
 | 评测环境 | Docker、`gcc:13` |
 
 ## 项目结构
 
 ```text
-backend/   Spring Boot API、评测队列和 Docker C++17 评测 worker
-frontend/  Vue 3 + Vite 前端应用
-deploy/    Ubuntu 生产部署配置和服务文件
-scripts/   Windows 本地开发启动、停止脚本
+cppkid/
+├── backend/                      Spring Boot API、评测队列和 Docker 评测 worker
+├── frontend/                     Vue 3 前端、代码可视化和互动宠物
+├── deploy/                       Ubuntu、systemd 和 Nginx 部署配置
+├── scripts/                      Windows 本地开发启动与停止脚本
+├── CODE_VISUALIZER_NEXT_CHAT.md  代码可视化开发交接
+└── PET_DRAG_ANIMATION_NEXT_CHAT.md 宠物拖拽动画开发交接
 ```
 
 ## 环境要求
 
-- JDK 17
-- Maven 3.8+
-- Node.js 16+
-- npm
-- MySQL 8
-- Redis
-- Docker（运行代码评测时需要）
+- JDK 17；
+- Maven 3.8+；
+- Node.js 16+ 与 npm；
+- MySQL 8；
+- Redis；
+- Docker（执行代码评测时需要）。
 
 ## 快速启动
 
-### Windows 一键启动（推荐）
+### Windows 一键启动
 
-仓库提供了 PowerShell 脚本，可以统一使用项目配置的 JDK、Maven 和 Node.js 路径，不依赖它们在系统 `PATH` 中的优先级。
-
-首次使用时，复制并编辑本地工具配置：
+首次使用时复制本地工具配置，并按本机安装路径修改：
 
 ```powershell
 Copy-Item .\scripts\local.env.example.ps1 .\scripts\local.env.ps1
@@ -55,36 +150,41 @@ notepad .\scripts\local.env.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1
 ```
 
-停止本次启动的服务：
+停止由脚本启动的服务：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\stop-dev.ps1
 ```
 
-默认访问地址：
+默认地址：
 
-- 前端：http://127.0.0.1:5173/
-- 后端：http://localhost:8080
-- 健康检查：http://localhost:8080/api/health
+- 前端：`http://127.0.0.1:5173/`
+- 后端：`http://localhost:8080`
+- 健康检查：`http://localhost:8080/api/health`
+- 宠物预览：`http://127.0.0.1:5173/pet-preview`
 
 ### 手动启动后端
 
-先创建数据库并导入表结构：
+创建数据库并导入表结构：
 
 ```bash
 cd backend
 mysql -uroot -p < sql/schema.sql
 ```
 
-确认 MySQL 和 Redis 已启动，并根据本机环境检查 `backend/src/main/resources/application.yml` 中的数据库、Redis 和 JWT 配置，然后运行：
+确认 MySQL、Redis 和 Docker 已启动，根据本机环境修改：
+
+```text
+backend/src/main/resources/application.yml
+```
+
+启动后端：
 
 ```bash
 mvn spring-boot:run
 ```
 
-后端默认监听 `http://localhost:8080`。
-
-如果需要执行代码评测，还要确认 Docker 可以运行评测镜像：
+检查 Docker 评测镜像：
 
 ```bash
 docker run --rm gcc:13 g++ --version
@@ -98,50 +198,46 @@ npm install
 npm run dev
 ```
 
-前端默认监听 `http://127.0.0.1:5173/`。开发环境的后端 API 地址配置在 `frontend/.env.development`：
+开发环境 API 地址通过 `frontend/.env.development` 配置：
 
-```bash
+```env
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-## 代码可视化
+## 构建与检查
 
-登录后，可以在教师端或学生端左侧导航栏进入“代码可视化”功能区。当前版本支持识别代码中的第一个一维 `int` 数组，例如：
-
-```cpp
-int arr[10] = {5, 9, 5, 3, 3, -1};
-```
-
-可视化页面会展示数组名称、元素值和下标；未显式初始化的位置会按 C++ 规则显示为 `0`。学生在题目编辑器中修改的代码也会同步到代码可视化页面。
-
-## 开发与构建
-
-构建前端：
+前端生产构建：
 
 ```bash
 cd frontend
 npm run build
 ```
 
-后端运行前会自动编译 Java 源码；也可以在 `backend` 目录执行：
+后端测试：
 
 ```bash
+cd backend
 mvn test
 ```
 
-## 开发注意事项
+当前前端已完成生产构建以及桌面、移动端宠物交互检查。构建时 Tree-sitter 的 `fs/path` externalized、依赖中的 `eval`、既有 CSS 嵌套和大分包提示属于当前依赖链的已知警告。
 
-- 教师创建的题目至少需要配置一个测试点，才能用于比赛。
+## 开发说明
+
+- 教师创建的题目至少需要一个测试点，才能用于比赛和判题。
 - 没有测试点的提交会被评测器拒绝，不会被标记为通过。
-- 评测任务依赖 Redis 队列，实际编译运行依赖 Docker。
-- 本地数据库数据、构建产物、运行日志和 IDE 文件已加入 Git 忽略规则。
+- 评测任务依赖 Redis，实际编译运行依赖 Docker。
+- 宠物拖动过程中不会逐帧写入 Pinia 或 `localStorage`，仅在最终停靠后保存位置。
+- 新的宠物禁入区域应添加 `data-pet-exclusion`。
+- 修改宠物状态、动画速度和滑翔参数时，优先调整 `frontend/src/pet/petConfig.ts`。
+- 开发预览、构建产物、运行日志和 IDE 文件不应提交到仓库。
 
 ## 生产部署
 
-生产环境配置与本地开发配置分离：
+生产环境与本地开发配置分离：
 
 - 后端生产配置：`backend/src/main/resources/application-prod.yml`
 - 前端生产 API 地址：`frontend/.env.production`
-- 服务器环境模板和服务文件：`deploy/`
+- systemd、Nginx 和服务器环境模板：`deploy/`
 
-目标平台为 Ubuntu 22.04 LTS 64 位。部署时请参考 [`deploy/README.md`](deploy/README.md) 中的服务器上传、MySQL、构建、systemd 和 Nginx 配置说明。
+目标平台为 Ubuntu 22.04 LTS 64 位。完整部署步骤请参阅 [deploy/README.md](deploy/README.md)。

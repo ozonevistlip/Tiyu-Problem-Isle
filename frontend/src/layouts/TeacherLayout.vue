@@ -1,6 +1,6 @@
 <template>
   <el-container class="app-layout">
-    <el-aside width="240px">
+    <el-aside width="240px" data-pet-exclusion="teacher-navigation">
       <div class="brand">
         <span>C++</span>
         <div>
@@ -20,7 +20,7 @@
       </el-menu>
     </el-aside>
     <el-container>
-      <el-header>
+      <el-header data-pet-exclusion="teacher-header">
         <div class="header-title">
           <strong>{{ user.userInfo?.realName || user.userInfo?.username }} 的课堂空间</strong>
           <small>清晰管理班级、题目与比赛</small>
@@ -38,18 +38,25 @@
         </router-view>
       </el-main>
     </el-container>
+    <PetWidget />
   </el-container>
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
+import PetWidget from '@/components/pet/PetWidget.vue'
+import { usePet } from '@/composables/usePet'
 
 const user = useUserStore()
 const router = useRouter()
+const pet = usePet()
+
+onMounted(() => pet.welcome('老师好，今天也一起看看同学们的学习进度吧！'))
 function logout() {
   user.logout()
   ElMessage.success('已退出教师工作台')
