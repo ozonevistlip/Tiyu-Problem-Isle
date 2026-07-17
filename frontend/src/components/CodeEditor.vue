@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="code-editor" :style="{ height }" />
+  <div ref="container" class="code-editor" data-pet-exclusion="code-editor" :style="{ height }" />
 </template>
 
 <script setup lang="ts">

@@ -1,6 +1,6 @@
 <template>
   <el-container class="app-layout">
-    <el-aside :width="isCollapsed ? '72px' : '240px'">
+    <el-aside :width="isCollapsed ? '72px' : '240px'" data-pet-exclusion="teacher-navigation">
       <div class="sidebar-header" :class="{ 'is-collapsed': isCollapsed }">
         <div v-if="!isCollapsed" class="brand">
           <span>C++</span>
@@ -49,14 +49,20 @@
         </router-view>
       </el-main>
     </el-container>
+    <PetWidget />
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Collection, DataAnalysis, Expand, Fold, HomeFilled, School, Trophy, UserFilled } from '@element-plus/icons-vue'
+import PetWidget from '@/components/pet/PetWidget.vue'
+import { usePet } from '@/composables/usePet'
 
 const isCollapsed = ref(false)
+const pet = usePet()
+
+onMounted(() => pet.welcome('老师好，今天也一起看看同学们的学习进度吧！'))
 </script>
 
 <style scoped lang="scss">

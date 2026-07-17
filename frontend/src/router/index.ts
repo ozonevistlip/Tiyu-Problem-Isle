@@ -3,6 +3,9 @@ import { useUserStore } from '@/stores/user'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/login' },
+  ...(import.meta.env.DEV
+    ? [{ path: '/pet-preview', component: () => import('@/views/common/PetPreviewView.vue'), meta: { public: true } }]
+    : []),
   {
     path: '/',
     component: () => import('@/layouts/AuthLayout.vue'),

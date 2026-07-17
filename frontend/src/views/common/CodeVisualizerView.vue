@@ -23,7 +23,7 @@
       <VisualizationStage :event="store.currentEvent" :snapshot="store.currentSnapshot" :diagnostic="diagnostic" :is-fullscreen="isFullscreen" :speed="store.speed" @toggle-fullscreen="toggleFullscreen" />
     </section>
 
-    <ExecutionControls class="sticky-controls" :index="store.currentIndex" :total="store.totalSteps" :playing="store.playing" :speed="store.speed" :at-start="store.atStart" :at-end="store.atEnd" @reset="store.reset" @previous="store.previous" @play="store.play" @pause="store.pause" @next="store.next" @seek="store.seek" @update:speed="store.speed = $event" />
+    <ExecutionControls data-pet-exclusion="execution-controls" class="sticky-controls" :index="store.currentIndex" :total="store.totalSteps" :playing="store.playing" :speed="store.speed" :at-start="store.atStart" :at-end="store.atEnd" @reset="store.reset" @previous="store.previous" @play="store.play" @pause="store.pause" @next="store.next" @seek="store.seek" @update:speed="store.speed = $event" />
   </main>
 </template>
 
@@ -35,6 +35,7 @@ import ExecutionControls from '@/components/code-visualizer/ExecutionControls.vu
 import VisualizationStage from '@/components/code-visualizer/VisualizationStage.vue'
 import { useExecutionStore } from '@/stores/executionStore'
 import { useCodeVisualizerStore } from '@/stores/codeVisualizer'
+import { usePet } from '@/composables/usePet'
 
 const DEFAULT_CODE = `#include <iostream>
 #include <string>
@@ -56,6 +57,7 @@ int main() {
 
 const store = useExecutionStore()
 const sharedCode = useCodeVisualizerStore()
+const pet = usePet()
 const workspaceRoot = ref<HTMLElement | null>(null)
 const code = ref('')
 const inputText = ref('')
@@ -63,6 +65,7 @@ const fontSize = ref(14)
 const isDirty = ref(false)
 const isFullscreen = ref(false)
 let debounceTimer: number | undefined
+let lastPetTypingAt = 0
 
 const editorHeight = computed(() => isFullscreen.value ? '100%' : '515px')
 const diagnostic = computed(() => store.runtimeError ? { type: 'error', ...store.runtimeError } : store.parseErrors[0] ? { type: 'warning', ...store.parseErrors[0] } : null)
@@ -184,7 +187,10 @@ function handleEditorWheel(event: WheelEvent) {
 async function runCode() {
   isDirty.value = false
   sharedCode.setCurrentCode(code.value)
+  pet.thinking()
   await store.run(code.value, inputText.value)
+  if (store.runtimeError || store.parseErrors.length) pet.codeError('这里有一处需要再检查，跟着提示定位一下吧。')
+  else pet.codeSuccess('执行轨迹已经准备好了，一步一步看看吧！')
 }
 
 async function toggleFullscreen() {
@@ -200,6 +206,11 @@ watch(code, (value) => {
   store.pause()
   if (debounceTimer !== undefined) window.clearTimeout(debounceTimer)
   debounceTimer = window.setTimeout(() => store.validate(value), 300)
+  const now = Date.now()
+  if (now - lastPetTypingAt > 8000) {
+    lastPetTypingAt = now
+    pet.codeStart()
+  }
 })
 
 onMounted(() => {

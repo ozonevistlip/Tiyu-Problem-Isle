@@ -27,7 +27,7 @@
       <section class="panel code-side">
         <div class="toolbar">
           <el-select model-value="cpp17" disabled><el-option label="C++17" value="cpp17" /></el-select>
-          <el-button type="primary" :loading="submitting" @click="submit">提交代码</el-button>
+          <el-button data-pet-exclusion="submit-code" type="primary" :loading="submitting" @click="submit">提交代码</el-button>
         </div>
         <CodeEditor v-model="code" height="500px" />
         <div class="custom-test-panel">
@@ -98,9 +98,11 @@ import { getHintApi, getStudentContestApi, getStudentProblemApi, runCustomTestAp
 import { getSubmissionApi } from '@/api/submission'
 import type { ContestInfo, ContestProblemInfo, CustomTestResult, HintView, SubmissionInfo } from '@/api/types'
 import { contestPhase, formatDateTime } from '@/utils/time'
+import { usePet } from '@/composables/usePet'
 
 const route = useRoute()
 const codeVisualizer = useCodeVisualizerStore()
+const pet = usePet()
 const contestId = computed(() => Number(route.params.contestId))
 const problemId = computed(() => Number(route.params.problemId))
 const loading = ref(false)
@@ -116,8 +118,16 @@ const customOutput = ref('')
 const customTestResult = ref<CustomTestResult | null>(null)
 const runningCustomTest = ref(false)
 let pollTimer = 0
+let lastPetTypingAt = 0
 
-watch(code, (value) => codeVisualizer.setCurrentCode(value), { immediate: true })
+watch(code, (value) => {
+  codeVisualizer.setCurrentCode(value)
+  const now = Date.now()
+  if (now - lastPetTypingAt > 8000) {
+    lastPetTypingAt = now
+    pet.codeStart()
+  }
+}, { immediate: true })
 
 const contestEnded = computed(() => (contest.value ? contestPhase(contest.value.startTime, contest.value.endTime) === 'ended' : false))
 const customStatusType = computed(() => {
@@ -157,21 +167,27 @@ async function runCustomTest() {
   runningCustomTest.value = true
   customTestResult.value = null
   customOutput.value = ''
+  pet.thinking()
   try {
     const result = await runCustomTestApi(contestId.value, problemId.value, code.value, customInput.value)
     customTestResult.value = result
     customOutput.value = result.stdout || ''
     if (result.status === 'FINISHED') {
       ElMessage.success('自测运行完成')
+      pet.codeSuccess('自测运行顺利，继续保持！')
+    } else {
+      pet.codeError(friendlyJudgeMessage(result.status))
     }
   } catch {
     // The request interceptor has already shown the server message.
+    pet.codeError('运行时遇到了一点问题，稍后再试一次吧。')
   } finally {
     runningCustomTest.value = false
   }
 }
 async function submit() {
   submitting.value = true
+  pet.thinking()
   try {
     latest.value = await submitCodeApi(contestId.value, problemId.value, code.value)
     ElMessage.success('提交成功，正在判题')
@@ -191,12 +207,24 @@ function startPolling(submissionId: number) {
       if (!['PENDING', 'JUDGING'].includes(result.status)) {
         window.clearInterval(pollTimer)
         await load()
-        if (result.status === 'ACCEPTED') await loadHint()
+        if (result.status === 'ACCEPTED') {
+          await loadHint()
+          pet.exerciseComplete()
+        } else {
+          pet.codeError(friendlyJudgeMessage(result.status))
+        }
       }
     } catch {
       window.clearInterval(pollTimer)
     }
   }, 1000)
+}
+function friendlyJudgeMessage(status: string) {
+  if (status === 'COMPILE_ERROR') return '编译时发现了小问题，检查一下括号、分号和变量名吧。'
+  if (status === 'WRONG_ANSWER') return '已经很接近了，再对照题意检查一下输出结果吧。'
+  if (status === 'RUNTIME_ERROR') return '程序运行中停住了，可以检查数组下标和除数。'
+  if (status === 'TIME_LIMIT_EXCEEDED') return '这次运行花得有点久，看看能不能减少重复计算。'
+  return '这里还有一点小问题，我们慢慢检查。'
 }
 onMounted(load)
 onUnmounted(() => window.clearInterval(pollTimer))
