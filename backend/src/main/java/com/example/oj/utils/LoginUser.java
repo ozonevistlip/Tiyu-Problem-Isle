@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class LoginUser {
     private Long userId;
     private String role;
+    private String sessionId;
 }

@@ -16,20 +16,11 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("`user`")
-public class User {
-    @TableId(type = IdType.AUTO)
-    private Long id;
-    private String username;
-    private String passwordHash;
-    private String realName;
-    private String nickname;
-    private String role;
-    private Integer status;
-    private LocalDateTime lastLoginAt;
-    private LocalDateTime lastActiveAt;
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
+@TableName("site_setting")
+public class SiteSetting {
+    @TableId(type = IdType.INPUT)
+    private String settingKey;
+    private String settingValue;
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 }

@@ -27,6 +27,10 @@ jwt:
   expire-minutes: 1440
 
 oj:
+  super-admin:
+    enabled: ${SUPER_ADMIN_ENABLED:true}
+    username: ${SUPER_ADMIN_USERNAME:superadmin}
+    password: ${SUPER_ADMIN_PASSWORD:CppKid@Admin123}
   judge:
     queue-name: judge_queue
     work-dir: ./judge-work

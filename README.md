@@ -1,6 +1,6 @@
 # CppKid OJ
 
-面向 C++ 入门课堂的在线评测与教学平台。教师可以组织班级、题库和比赛，学生可以在线编写、运行和提交 C++17 代码；项目同时提供浏览器端代码执行可视化和 PixiJS 互动学习宠物，让抽象的程序执行过程与判题反馈更直观。
+面向 C++ 入门课堂的在线评测与教学平台。教师可以组织班级、题库和比赛，学生可以在线编写、运行和提交 C++17 代码，超级管理员可以集中管理账号、安全策略和站点运行状态；项目同时提供浏览器端代码执行可视化和 PixiJS 互动学习宠物，让抽象的程序执行过程与判题反馈更直观。
 
 ## 当前功能
 
@@ -9,7 +9,25 @@
 - 教师端：班级与学生管理、题目与测试点管理、提示管理、比赛发布、提交记录和排行榜。
 - 学生端：比赛列表、题目作答、Monaco C++17 编辑器、提示解锁、代码自测、正式提交、评测详情和排行榜。
 - 评测服务：Redis 队列调度提交，Docker `gcc:13` 环境负责编译并运行 C++17 代码。
-- 身份认证：JWT 登录，区分教师和学生角色。
+- 身份认证：JWT + 服务端会话，区分教师、学生和超级管理员角色，支持封禁账号与强制下线。
+- 超级管理员端：统一登录后进入 `/super-admin`，管理全站账号、在线会话、注册开关、访问量、服务器状态和全站公告。
+
+### 超级管理员与会话安全
+
+超级管理员与老师、学生共用 `/login` 登录入口。登录成功后，前端根据 `SUPER_ADMIN` 角色跳转到 `/super-admin`，所有 `/api/super-admin/**` 接口仍会在后端执行独立权限校验。
+
+管理端支持：
+
+- 查看、搜索和筛选全部账号；
+- 查看用户详细资料，新增或修改老师、学生账号；
+- 禁用、解封、重置密码和删除无效账号；
+- 按账号强制退出，或终止指定设备会话；
+- 查看最近 15 分钟活跃的在线用户；
+- 开启或关闭自主注册；
+- 查看访问量、JVM 内存、系统负载和运行时间；
+- 创建、编辑、发布和删除全站公告。
+
+登录 Token 包含服务端会话 ID。每次访问受保护接口时，后端同时检查 JWT、用户状态、角色和会话状态。因此账号被禁用、密码被重置或会话被强制终止后，已有 Token 会立即失效。
 
 ### C++ 代码执行可视化
 
@@ -109,7 +127,7 @@ frontend/src/composables/usePet.ts
 | 前端界面 | Element Plus、SCSS、Monaco Editor |
 | 可视化 | Tree-sitter、Web Worker、GSAP、SVG/DOM |
 | 互动宠物 | PixiJS 8、动画图集、Pointer Events |
-| 后端 | Spring Boot 3.3、JDK 17、MyBatis-Plus、MySQL、Redis、JWT |
+| 后端 | Spring Boot 3.3、JDK 17、MyBatis-Plus、MySQL、Redis、JWT + 服务端会话 |
 | 评测环境 | Docker、`gcc:13` |
 
 ## 项目结构
@@ -117,10 +135,10 @@ frontend/src/composables/usePet.ts
 ```text
 cppkid/
 ├── backend/                      Spring Boot API、评测队列和 Docker 评测 worker
+│   └── sql/                      完整建库脚本与增量迁移脚本
 ├── frontend/                     Vue 3 前端、代码可视化和互动宠物
 ├── deploy/                       Ubuntu、systemd 和 Nginx 部署配置
 ├── scripts/                      Windows 本地开发启动与停止脚本
-├── CODE_VISUALIZER_NEXT_CHAT.md  代码可视化开发交接
 └── PET_DRAG_ANIMATION_NEXT_CHAT.md 宠物拖拽动画开发交接
 ```
 
@@ -163,7 +181,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\stop-dev.ps1
 - 健康检查：`http://localhost:8080/api/health`
 - 宠物预览：`http://127.0.0.1:5173/pet-preview`
 
-### 手动启动后端
+### 数据库初始化与升级
+
+#### 新数据库
 
 创建数据库并导入表结构：
 
@@ -172,13 +192,63 @@ cd backend
 mysql -uroot -p < sql/schema.sql
 ```
 
-确认 MySQL、Redis 和 Docker 已启动，根据本机环境修改：
+PowerShell 不支持上述 Bash 输入重定向时，可以使用 MySQL 的 `source` 命令：
 
-```text
-backend/src/main/resources/application.yml
+```powershell
+Set-Location .\backend
+$schema = (Resolve-Path .\sql\schema.sql).Path.Replace('\', '/')
+mysql -uroot -p --execute="source $schema"
 ```
 
-启动后端：
+#### 现有数据库升级
+
+升级前先停止后端并备份数据库：
+
+```bash
+mysqldump -uroot -p --single-transaction --routines --triggers \
+  --databases cppkid_oj --result-file=backup_before_super_admin.sql
+```
+
+然后执行一次增量迁移。该脚本不要重复执行：
+
+```bash
+mysql -uroot -p cppkid_oj < sql/super_admin_migration.sql
+```
+
+PowerShell 可以执行：
+
+```powershell
+Set-Location .\backend
+$migration = (Resolve-Path .\sql\super_admin_migration.sql).Path.Replace('\', '/')
+mysql -uroot -p --database=cppkid_oj --execute="source $migration"
+```
+
+迁移完成后验证新增表和字段：
+
+```bash
+mysql -uroot -p cppkid_oj -e "SHOW TABLES LIKE 'user_session'; SHOW TABLES LIKE 'site_setting'; SHOW TABLES LIKE 'site_visit'; SHOW TABLES LIKE 'announcement'; SHOW COLUMNS FROM user LIKE 'last_login_at'; SHOW COLUMNS FROM user LIKE 'last_active_at';"
+```
+
+#### 初始化超级管理员
+
+开发环境首次启动且数据库中没有超级管理员时，会自动创建以下账号：
+
+- 账号：`superadmin`
+- 密码：`CppKid@Admin123`
+
+该默认值只用于本地开发，请勿用于公网环境。生产环境默认不会自动创建管理员，需在部署环境中显式配置：
+
+```env
+SUPER_ADMIN_ENABLED=true
+SUPER_ADMIN_USERNAME=superadmin
+SUPER_ADMIN_PASSWORD=replace-with-a-strong-password
+```
+
+初始化完成后，可以将 `SUPER_ADMIN_ENABLED` 改回 `false`。如果数据库中已经存在 `SUPER_ADMIN`，启动引导器不会重复创建。
+
+### 手动启动后端
+
+确认 MySQL、Redis 和 Docker 已启动，并根据本机环境检查 `backend/src/main/resources/application.yml` 中的数据库、Redis 和 JWT 配置，然后启动后端：
 
 ```bash
 mvn spring-boot:run
@@ -227,6 +297,8 @@ mvn test
 - 教师创建的题目至少需要一个测试点，才能用于比赛和判题。
 - 没有测试点的提交会被评测器拒绝，不会被标记为通过。
 - 评测任务依赖 Redis，实际编译运行依赖 Docker。
+- 旧版 JWT 不包含服务端会话 ID，升级后会自动失效，用户需要重新登录。
+- `super_admin_migration.sql` 是一次性迁移脚本，重复执行前应先检查 `user` 表是否已有新增字段。
 - 宠物拖动过程中不会逐帧写入 Pinia 或 `localStorage`，仅在最终停靠后保存位置。
 - 新的宠物禁入区域应添加 `data-pet-exclusion`。
 - 修改宠物状态、动画速度和滑翔参数时，优先调整 `frontend/src/pet/petConfig.ts`。

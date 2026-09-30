@@ -1,4 +1,4 @@
-export type UserRole = 'teacher' | 'student'
+export type UserRole = 'teacher' | 'student' | 'SUPER_ADMIN'
 
 export interface ApiResult<T> {
   code: number
@@ -13,6 +13,56 @@ export interface UserInfo {
   nickname?: string
   role: UserRole
   status: number
+  lastLoginAt?: string
+  lastActiveAt?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  size: number
+  current: number
+  pages: number
+}
+
+export interface AdminDashboard {
+  totalUsers: number
+  teachers: number
+  students: number
+  disabledUsers: number
+  onlineUsers: number
+  totalVisits: number
+  todayVisits: number
+  uptimeSeconds: number
+  processors: number
+  maxMemoryMb: number
+  usedMemoryMb: number
+  systemLoadAverage: number
+}
+
+export interface OnlineSession {
+  id: string
+  userId: number
+  username: string
+  realName?: string
+  role: UserRole
+  ipAddress?: string
+  userAgent?: string
+  loginAt: string
+  lastActiveAt: string
+}
+
+export interface Announcement {
+  id: number
+  title: string
+  content: string
+  status: number
+  createdBy: number
+  publishedAt?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface LoginResponse {

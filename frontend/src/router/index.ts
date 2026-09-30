@@ -15,6 +15,18 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/super-admin',
+    component: () => import('@/layouts/SuperAdminLayout.vue'),
+    meta: { role: 'SUPER_ADMIN' },
+    children: [
+      { path: '', component: () => import('@/views/super-admin/AdminDashboardView.vue') },
+      { path: 'users', component: () => import('@/views/super-admin/UserManagementView.vue') },
+      { path: 'online', component: () => import('@/views/super-admin/OnlineUsersView.vue') },
+      { path: 'announcements', component: () => import('@/views/super-admin/AnnouncementManagementView.vue') },
+      { path: 'settings', component: () => import('@/views/super-admin/SiteSettingsView.vue') }
+    ]
+  },
+  {
     path: '/teacher',
     component: () => import('@/layouts/TeacherLayout.vue'),
     meta: { role: 'teacher' },
@@ -64,7 +76,7 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const user = useUserStore()
   if (to.meta.public) {
-    if (user.isLogin && user.role) return user.role === 'teacher' ? '/teacher' : '/student'
+    if (user.isLogin && user.role) return homeForRole(user.role)
     return true
   }
   if (!user.isLogin) return `/login?redirect=${encodeURIComponent(to.fullPath)}`
@@ -79,6 +91,28 @@ router.beforeEach(async (to) => {
   const requiredRole = to.meta.role
   if (requiredRole && user.role !== requiredRole) return '/403'
   return true
+})
+
+function homeForRole(role: string) {
+  if (role === 'SUPER_ADMIN') return '/super-admin'
+  return role === 'teacher' ? '/teacher' : '/student'
+}
+
+router.afterEach((to) => {
+  const keyName = 'cppkid_visitor_key'
+  let visitorKey = localStorage.getItem(keyName)
+  if (!visitorKey) {
+    visitorKey = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    localStorage.setItem(keyName, visitorKey)
+  }
+  void fetch(`${import.meta.env.VITE_API_BASE_URL}/public/visits`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ visitorKey, path: to.path }),
+    keepalive: true
+  }).catch(() => undefined)
 })
 
 export default router

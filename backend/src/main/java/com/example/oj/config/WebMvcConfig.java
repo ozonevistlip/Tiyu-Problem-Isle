@@ -1,6 +1,7 @@
 package com.example.oj.config;
 
 import com.example.oj.interceptor.JwtInterceptor;
+import com.example.oj.interceptor.SuperAdminInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -19,12 +20,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
     private final JwtInterceptor jwtInterceptor;
+    private final SuperAdminInterceptor superAdminInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/register", "/api/auth/login", "/api/health");
+                .excludePathPatterns("/api/auth/register", "/api/auth/login", "/api/auth/public-config",
+                        "/api/health", "/api/public/**");
+        registry.addInterceptor(superAdminInterceptor).addPathPatterns("/api/super-admin/**");
     }
 
     @Override

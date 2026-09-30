@@ -25,3 +25,7 @@ export function loginApi(data: LoginRequest) {
 export function meApi() {
   return request.get<UserInfo, UserInfo>('/auth/me')
 }
+
+export function logoutApi() {
+  return request.post<void, void>('/auth/logout')
+}

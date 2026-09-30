@@ -5,7 +5,8 @@
       <h2>创建账号</h2>
       <p class="muted">选择老师或学生身份，注册后就可以回到登录页进入学习星球。</p>
     </div>
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
+    <el-alert v-if="!registrationEnabled" title="当前未开放自主注册" description="请联系超级管理员创建账号。" type="warning" :closable="false" show-icon />
+    <el-form v-else ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
       <el-form-item label="账号" prop="username"><el-input v-model.trim="form.username" size="large" autocomplete="username" placeholder="设置登录账号" /></el-form-item>
       <el-form-item label="密码" prop="password"><el-input v-model="form.password" size="large" type="password" autocomplete="new-password" placeholder="设置登录密码" show-password /></el-form-item>
       <el-form-item label="姓名"><el-input v-model.trim="form.realName" size="large" placeholder="填写真实姓名，老师更容易找到你" /></el-form-item>
@@ -21,16 +22,18 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import type { UserRole } from '@/api/types'
+import { publicConfigApi } from '@/api/public'
 
 const user = useUserStore()
 const router = useRouter()
 const loading = ref(false)
+const registrationEnabled = ref(true)
 const formRef = ref<FormInstance>()
 const roleOptions = [
   { label: '老师', value: 'teacher' },
@@ -71,6 +74,10 @@ async function submit() {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  try { registrationEnabled.value = (await publicConfigApi()).registrationEnabled } catch { /* backend remains authoritative */ }
+})
 </script>
 
 <style scoped lang="scss">

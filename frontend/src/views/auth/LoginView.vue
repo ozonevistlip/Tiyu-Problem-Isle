@@ -26,22 +26,25 @@
       </el-button>
     </el-form>
     <p class="helper">忘记密码可以联系老师重置，别担心，进度还在。</p>
-    <p class="switch">还没有账号？<router-link to="/register">创建一个新账号</router-link></p>
+    <p v-if="registrationEnabled" class="switch">还没有账号？<router-link to="/register">创建一个新账号</router-link></p>
+    <p v-else class="switch muted">当前未开放自主注册，请联系管理员创建账号。</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Lock, User } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { publicConfigApi } from '@/api/public'
 
 const user = useUserStore()
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
+const registrationEnabled = ref(true)
 const formRef = ref<FormInstance>()
 const form = reactive({ username: '', password: '' })
 const rules: FormRules = {
@@ -66,13 +69,18 @@ async function submit() {
     const info = await user.login(form)
     ElMessage.success('太棒了，登录成功！')
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
-    await router.replace(redirect || (info.role === 'teacher' ? '/teacher' : '/student'))
+    const roleHome = info.role === 'SUPER_ADMIN' ? '/super-admin' : (info.role === 'teacher' ? '/teacher' : '/student')
+    await router.replace(redirect || roleHome)
   } catch {
     ElMessage.error('登录没有成功，再检查一下账号或密码吧')
   } finally {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  try { registrationEnabled.value = (await publicConfigApi()).registrationEnabled } catch { /* keep login usable */ }
+})
 </script>
 
 <style scoped lang="scss">

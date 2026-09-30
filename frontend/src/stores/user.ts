@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { loginApi, meApi, registerApi, type LoginRequest, type RegisterRequest } from '@/api/auth'
+import { loginApi, logoutApi, meApi, registerApi, type LoginRequest, type RegisterRequest } from '@/api/auth'
 import type { UserInfo, UserRole } from '@/api/types'
 import { clearToken, getStoredUser, getToken, setStoredUser, setToken } from '@/utils/auth'
 
@@ -9,6 +9,14 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref<UserInfo | null>(getStoredUser())
   const role = computed<UserRole | ''>(() => userInfo.value?.role || '')
   const isLogin = computed(() => Boolean(token.value))
+
+  function clearLocalSession() {
+    token.value = ''
+    userInfo.value = null
+    clearToken()
+  }
+
+  window.addEventListener('cppkid-auth-expired', clearLocalSession)
 
   async function login(payload: LoginRequest) {
     const result = await loginApi(payload)
@@ -30,11 +38,15 @@ export const useUserStore = defineStore('user', () => {
     return user
   }
 
-  function logout() {
-    token.value = ''
-    userInfo.value = null
-    clearToken()
+  async function logout() {
+    try {
+      if (token.value) await logoutApi()
+    } catch {
+      // Local logout must still succeed if the session has already expired.
+    } finally {
+      clearLocalSession()
+    }
   }
 
-  return { token, userInfo, role, isLogin, login, register, fetchMe, logout }
+  return { token, userInfo, role, isLogin, login, register, fetchMe, logout, clearLocalSession }
 })

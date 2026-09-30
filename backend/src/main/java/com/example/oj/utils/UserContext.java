@@ -41,6 +41,12 @@ public final class UserContext {
         }
     }
 
+    public static void requireSuperAdmin() {
+        if (!"SUPER_ADMIN".equals(role())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可操作");
+        }
+    }
+
     public static void clear() {
         HOLDER.remove();
     }

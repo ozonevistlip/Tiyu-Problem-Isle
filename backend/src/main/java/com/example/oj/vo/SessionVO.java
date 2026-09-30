@@ -7,15 +7,14 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class UserVO {
-    private Long id;
+public class SessionVO {
+    private String id;
+    private Long userId;
     private String username;
     private String realName;
-    private String nickname;
     private String role;
-    private Integer status;
-    private LocalDateTime lastLoginAt;
+    private String ipAddress;
+    private String userAgent;
+    private LocalDateTime loginAt;
     private LocalDateTime lastActiveAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

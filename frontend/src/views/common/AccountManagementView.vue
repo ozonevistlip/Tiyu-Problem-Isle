@@ -48,10 +48,10 @@ const displayName = computed(() => user.userInfo?.realName || user.userInfo?.nic
 const avatarText = computed(() => displayName.value.trim().slice(0, 1).toUpperCase())
 const roleLabel = computed(() => user.role === 'teacher' ? '教师账号' : '学生账号')
 
-function logout() {
-  user.logout()
+async function logout() {
+  await user.logout()
   ElMessage.success('已安全退出网站')
-  void router.replace('/login')
+  await router.replace('/login')
 }
 </script>
 

@@ -23,6 +23,7 @@ const unwrapResponse = (response: AxiosResponse): unknown => {
     ElMessage.error(result.message || '请求失败')
     if (result.code === 40001) {
       clearToken()
+      window.dispatchEvent(new Event('cppkid-auth-expired'))
       void router.replace('/login')
     }
     return Promise.reject(new Error(result.message || '请求失败'))
@@ -37,6 +38,7 @@ instance.interceptors.response.use(
     ElMessage.error(message)
     if (error.response?.status === 401) {
       clearToken()
+      window.dispatchEvent(new Event('cppkid-auth-expired'))
       void router.replace('/login')
     }
     return Promise.reject(error)

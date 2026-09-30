@@ -23,11 +23,12 @@ public class JwtUtils {
         this.expire = Duration.ofMinutes(expireMinutes);
     }
 
-    public String generateToken(Long userId, String role) {
+    public String generateToken(Long userId, String role, String sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("role", role)
+                .claim("sid", sessionId)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(expire)))
                 .signWith(key)
@@ -43,6 +44,11 @@ public class JwtUtils {
         return LoginUser.builder()
                 .userId(Long.valueOf(claims.getSubject()))
                 .role(claims.get("role", String.class))
+                .sessionId(claims.get("sid", String.class))
                 .build();
+    }
+
+    public Instant expiresAt() {
+        return Instant.now().plus(expire);
     }
 }
