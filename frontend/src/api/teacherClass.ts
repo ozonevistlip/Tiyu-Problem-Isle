@@ -3,6 +3,7 @@ import type { ClassInfo, UserInfo } from './types'
 
 export interface ClassPayload {
   className: string
+  classTypeId: number
   description?: string
 }
 

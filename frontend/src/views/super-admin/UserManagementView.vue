@@ -1,8 +1,8 @@
 <template>
   <section class="page">
     <div class="panel heading">
-      <div><h1>用户管理</h1><p>查看、搜索并管理全站老师与学生账号。</p></div>
-      <el-button type="primary" @click="openCreate">新增用户</el-button>
+      <div><h1>用户管理</h1><p>新增老师账号，并查看全站老师与学生账号。</p></div>
+      <el-button type="primary" @click="openCreate">新增老师</el-button>
     </div>
     <div class="panel">
       <div class="filters">
@@ -27,7 +27,7 @@
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="showDetail(row)">详情</el-button>
-            <template v-if="row.role !== 'SUPER_ADMIN'">
+            <template v-if="row.role === 'teacher'">
               <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
               <el-button link :type="row.status === 1 ? 'warning' : 'success'" @click="toggleStatus(row)">{{ row.status === 1 ? '禁用' : '解封' }}</el-button>
               <el-dropdown trigger="click">
@@ -47,7 +47,7 @@
 
     <el-dialog v-model="editorVisible" :title="editingId ? '修改用户' : '新增用户'" width="min(92vw, 560px)" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-        <div class="form-grid"><el-form-item label="登录账号" prop="username"><el-input v-model.trim="form.username" /></el-form-item><el-form-item label="角色" prop="role"><el-select v-model="form.role"><el-option label="老师" value="teacher" /><el-option label="学生" value="student" /></el-select></el-form-item></div>
+        <div class="form-grid"><el-form-item label="登录账号" prop="username"><el-input v-model.trim="form.username" /></el-form-item><el-form-item label="角色"><el-input :model-value="form.role === 'teacher' ? '老师' : '学生'" disabled /></el-form-item></div>
         <el-form-item v-if="!editingId" label="初始密码" prop="password"><el-input v-model="form.password" type="password" show-password autocomplete="new-password" /></el-form-item>
         <div class="form-grid"><el-form-item label="真实姓名"><el-input v-model="form.realName" /></el-form-item><el-form-item label="昵称"><el-input v-model="form.nickname" /></el-form-item></div>
       </el-form>
@@ -76,7 +76,7 @@ const loading = ref(false), saving = ref(false), editorVisible = ref(false), det
 const editingId = ref<number>(), detail = ref<UserInfo>(), formRef = ref<FormInstance>()
 const query = reactive<{ page: number; size: number; keyword: string; role: string; status?: number }>({ page: 1, size: 20, keyword: '', role: '' })
 const pageData = reactive<PageResult<UserInfo>>({ records: [], total: 0, current: 1, size: 20, pages: 0 })
-const emptyForm = () => ({ username: '', password: '', role: 'student' as 'student' | 'teacher', realName: '', nickname: '' })
+const emptyForm = () => ({ username: '', password: '', role: 'teacher' as 'teacher' | 'student', realName: '', nickname: '' })
 const form = reactive(emptyForm())
 const rules: FormRules = { username: [{ required: true, message: '请输入账号', trigger: 'blur' }, { min: 3, max: 30, message: '长度为 3-30 个字符', trigger: 'blur' }], password: [{ validator: (_r, value, callback) => !editingId.value && (!value || value.length < 6) ? callback(new Error('初始密码至少 6 个字符')) : callback(), trigger: 'blur' }], role: [{ required: true, message: '请选择角色' }] }
 

@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 510MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/cppkid_oj?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
@@ -27,6 +31,7 @@ jwt:
   expire-minutes: 1440
 
 oj:
+  video-dir: ${VIDEO_DIR:./teaching-videos}
   super-admin:
     enabled: ${SUPER_ADMIN_ENABLED:true}
     username: ${SUPER_ADMIN_USERNAME:superadmin}

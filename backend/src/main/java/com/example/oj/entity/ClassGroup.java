@@ -21,6 +21,7 @@ public class ClassGroup {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long teacherId;
+    private Long classTypeId;
     private String className;
     private String description;
     private Integer status;

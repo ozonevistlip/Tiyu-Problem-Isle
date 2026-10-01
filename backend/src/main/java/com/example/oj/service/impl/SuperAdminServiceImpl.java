@@ -9,11 +9,17 @@ import com.example.oj.dto.AdminCreateUserRequest;
 import com.example.oj.dto.AdminUpdateUserRequest;
 import com.example.oj.dto.AnnouncementRequest;
 import com.example.oj.entity.Announcement;
+import com.example.oj.entity.ClassGroup;
+import com.example.oj.entity.Contest;
+import com.example.oj.entity.Problem;
 import com.example.oj.entity.SiteSetting;
 import com.example.oj.entity.SiteVisit;
 import com.example.oj.entity.User;
 import com.example.oj.entity.UserSession;
 import com.example.oj.mapper.AnnouncementMapper;
+import com.example.oj.mapper.ClassGroupMapper;
+import com.example.oj.mapper.ContestMapper;
+import com.example.oj.mapper.ProblemMapper;
 import com.example.oj.mapper.SiteSettingMapper;
 import com.example.oj.mapper.SiteVisitMapper;
 import com.example.oj.mapper.UserMapper;
@@ -44,6 +50,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     private final SiteSettingMapper siteSettingMapper;
     private final SiteVisitMapper siteVisitMapper;
     private final AnnouncementMapper announcementMapper;
+    private final ClassGroupMapper classGroupMapper;
+    private final ContestMapper contestMapper;
+    private final ProblemMapper problemMapper;
 
     @Override
     public AdminDashboardVO dashboard() {
@@ -92,6 +101,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
     @Override
     public UserVO createUser(AdminCreateUserRequest request) {
+        if (!"teacher".equals(request.getRole())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "超级管理员只能创建老师账号");
+        }
         ensureUsernameAvailable(request.getUsername(), null);
         User user = User.builder()
                 .username(request.getUsername().trim())
@@ -108,6 +120,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     @Override
     public UserVO updateUser(Long id, AdminUpdateUserRequest request) {
         User user = requireManagedUser(id);
+        if (request.getRole() != null && !request.getRole().equals(user.getRole())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "不能通过编辑账号改变角色");
+        }
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
             ensureUsernameAvailable(request.getUsername(), id);
             user.setUsername(request.getUsername().trim());
@@ -151,7 +166,19 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        requireManagedUser(id);
+        User user = requireManagedUser(id);
+        if ("teacher".equals(user.getRole())) {
+            if (classGroupMapper.selectCount(new LambdaQueryWrapper<ClassGroup>()
+                    .eq(ClassGroup::getTeacherId, id)) > 0
+                    || userMapper.selectCount(new LambdaQueryWrapper<User>()
+                    .eq(User::getCreatedBy, id)) > 0
+                    || contestMapper.selectCount(new LambdaQueryWrapper<Contest>()
+                    .eq(Contest::getTeacherId, id)) > 0
+                    || problemMapper.selectCount(new LambdaQueryWrapper<Problem>()
+                    .eq(Problem::getCreatedBy, id)) > 0) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "该老师仍有关联的班级、学生、比赛或题目，请先处理关联数据");
+            }
+        }
         userSessionMapper.delete(new LambdaQueryWrapper<UserSession>().eq(UserSession::getUserId, id));
         userMapper.deleteById(id);
     }
@@ -192,7 +219,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     @Override
     public Map<String, Object> settings() {
         SiteSetting setting = siteSettingMapper.selectById("registration_enabled");
-        return Map.of("registrationEnabled", setting == null || Boolean.parseBoolean(setting.getSettingValue()));
+        return Map.of("registrationEnabled", setting != null && Boolean.parseBoolean(setting.getSettingValue()));
     }
 
     @Override
@@ -248,8 +275,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
     private User requireManagedUser(Long id) {
         User user = requireUser(id);
-        if ("SUPER_ADMIN".equals(user.getRole())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "超级管理员账号不可通过用户管理接口修改");
+        if (!"teacher".equals(user.getRole())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "该入口只能管理老师账号");
         }
         return user;
     }

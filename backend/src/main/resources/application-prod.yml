@@ -3,6 +3,10 @@ server:
   address: ${SERVER_ADDRESS:127.0.0.1}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 510MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:cppkid_oj}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
@@ -20,6 +24,7 @@ jwt:
   expire-minutes: ${JWT_EXPIRE_MINUTES:1440}
 
 oj:
+  video-dir: ${VIDEO_DIR:/opt/cppkid/teaching-videos}
   super-admin:
     enabled: ${SUPER_ADMIN_ENABLED:false}
     username: ${SUPER_ADMIN_USERNAME:superadmin}

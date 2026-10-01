@@ -21,6 +21,7 @@ frontend/*-run.err.log
 # Java / Maven
 backend/target/
 backend/judge-work/
+backend/teaching-videos/
 
 # Node / Vite
 frontend/node_modules/

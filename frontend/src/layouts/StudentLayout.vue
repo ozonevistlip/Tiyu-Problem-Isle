@@ -14,6 +14,7 @@
         </el-button>
       </div>
       <el-menu router :default-active="$route.path" :collapse="isCollapsed" :collapse-transition="false">
+        <el-menu-item index="/student/after-class"><el-icon><School /></el-icon><template #title>课后学习</template></el-menu-item>
         <el-menu-item index="/student">
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
@@ -47,7 +48,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { DataAnalysis, Expand, Fold, HomeFilled, Trophy, UserFilled } from '@element-plus/icons-vue'
+import { DataAnalysis, Expand, Fold, HomeFilled, School, Trophy, UserFilled } from '@element-plus/icons-vue'
 import PetWidget from '@/components/pet/PetWidget.vue'
 import { usePet } from '@/composables/usePet'
 

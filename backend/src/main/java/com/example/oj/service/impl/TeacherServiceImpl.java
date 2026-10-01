@@ -24,7 +24,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TeacherServiceImpl implements TeacherService {
     private final ClassGroupMapper classGroupMapper;
+    private final ClassTypeMapper classTypeMapper;
     private final ClassMemberMapper classMemberMapper;
+    private final LessonStudentTierMapper lessonStudentTierMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final TestcaseMapper testcaseMapper;
@@ -37,8 +39,10 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     public ClassVO createClass(CreateClassRequest request) {
         UserContext.requireTeacher();
+        requireActiveType(request.getClassTypeId());
         ClassGroup group = ClassGroup.builder()
                 .teacherId(UserContext.userId())
+                .classTypeId(request.getClassTypeId())
                 .className(request.getClassName())
                 .description(request.getDescription())
                 .status(1)
@@ -57,8 +61,15 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional
     public ClassVO updateClass(Long classId, CreateClassRequest request) {
         ClassGroup group = requireOwnClass(classId);
+        requireActiveType(request.getClassTypeId());
+        if (!request.getClassTypeId().equals(group.getClassTypeId())) {
+            lessonStudentTierMapper.delete(new LambdaQueryWrapper<LessonStudentTier>()
+                    .eq(LessonStudentTier::getClassId, classId));
+        }
+        group.setClassTypeId(request.getClassTypeId());
         group.setClassName(request.getClassName());
         group.setDescription(request.getDescription());
         classGroupMapper.updateById(group);
@@ -66,8 +77,12 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional
     public void deleteClass(Long classId) {
         requireOwnClass(classId);
+        lessonStudentTierMapper.delete(new LambdaQueryWrapper<LessonStudentTier>()
+                .eq(LessonStudentTier::getClassId, classId));
+        classMemberMapper.delete(new LambdaQueryWrapper<ClassMember>().eq(ClassMember::getClassId, classId));
         classGroupMapper.deleteById(classId);
     }
 
@@ -75,7 +90,8 @@ public class TeacherServiceImpl implements TeacherService {
     public void addStudent(Long classId, AddStudentRequest request) {
         requireOwnClass(classId);
         User student = findStudent(request);
-        if (student == null || !"student".equals(student.getRole())) {
+        if (student == null || !"student".equals(student.getRole())
+                || !UserContext.userId().equals(student.getCreatedBy())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "学生不存在");
         }
         Long exists = classMemberMapper.selectCount(new LambdaQueryWrapper<ClassMember>()
@@ -104,8 +120,12 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional
     public void deleteStudent(Long classId, Long studentId) {
         requireOwnClass(classId);
+        lessonStudentTierMapper.delete(new LambdaQueryWrapper<LessonStudentTier>()
+                .eq(LessonStudentTier::getClassId, classId)
+                .eq(LessonStudentTier::getStudentId, studentId));
         classMemberMapper.delete(new LambdaQueryWrapper<ClassMember>()
                 .eq(ClassMember::getClassId, classId)
                 .eq(ClassMember::getStudentId, studentId));
@@ -404,6 +424,13 @@ public class TeacherServiceImpl implements TeacherService {
         return group;
     }
 
+    private void requireActiveType(Long typeId) {
+        ClassType type = classTypeMapper.selectById(typeId);
+        if (type == null || !Integer.valueOf(1).equals(type.getStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择超级管理员创建的班级类型");
+        }
+    }
+
     private User findStudent(AddStudentRequest request) {
         if (request.getStudentId() != null) {
             return userMapper.selectById(request.getStudentId());
@@ -503,6 +530,10 @@ public class TeacherServiceImpl implements TeacherService {
         return ClassVO.builder()
                 .id(group.getId())
                 .teacherId(group.getTeacherId())
+                .classTypeId(group.getClassTypeId())
+                .classTypeName(group.getClassTypeId() == null ? null :
+                        java.util.Optional.ofNullable(classTypeMapper.selectById(group.getClassTypeId()))
+                                .map(ClassType::getName).orElse(null))
                 .className(group.getClassName())
                 .description(group.getDescription())
                 .status(group.getStatus())

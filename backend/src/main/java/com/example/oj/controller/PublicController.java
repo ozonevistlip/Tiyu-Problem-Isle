@@ -30,7 +30,7 @@ public class PublicController {
     public Result<Map<String, Object>> config() {
         SiteSetting setting = siteSettingMapper.selectById("registration_enabled");
         return Result.success(Map.of("registrationEnabled",
-                setting == null || Boolean.parseBoolean(setting.getSettingValue())));
+                setting != null && Boolean.parseBoolean(setting.getSettingValue())));
     }
 
     @GetMapping("/announcements")

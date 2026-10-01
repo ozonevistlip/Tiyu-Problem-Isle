@@ -25,6 +25,7 @@ public class User {
     private String realName;
     private String nickname;
     private String role;
+    private Long createdBy;
     private Integer status;
     private LocalDateTime lastLoginAt;
     private LocalDateTime lastActiveAt;

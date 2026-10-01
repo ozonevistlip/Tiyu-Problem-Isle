@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 public class ClassVO {
     private Long id;
     private Long teacherId;
+    private Long classTypeId;
+    private String classTypeName;
     private String className;
     private String description;
     private Integer status;

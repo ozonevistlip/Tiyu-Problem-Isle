@@ -35,7 +35,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserVO register(RegisterRequest request) {
         SiteSetting registration = siteSettingMapper.selectById("registration_enabled");
-        if (registration != null && !Boolean.parseBoolean(registration.getSettingValue())) {
+        if (registration == null || !Boolean.parseBoolean(registration.getSettingValue())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "网站当前未开放注册");
         }
         Long exists = userMapper.selectCount(new LambdaQueryWrapper<User>()
@@ -49,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
                 .realName(request.getRealName())
                 .nickname(request.getNickname())
                 .role(request.getRole())
+                .createdBy(null)
                 .status(1)
                 .build();
         userMapper.insert(user);
@@ -104,7 +105,7 @@ public class AuthServiceImpl implements AuthService {
         return toUserVO(user);
     }
 
-    static UserVO toUserVO(User user) {
+    public static UserVO toUserVO(User user) {
         return UserVO.builder()
                 .id(user.getId())
                 .username(user.getUsername())

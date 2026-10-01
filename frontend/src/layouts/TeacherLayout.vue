@@ -22,6 +22,9 @@
           <el-icon><School /></el-icon>
           <template #title>班级管理</template>
         </el-menu-item>
+        <el-menu-item index="/teacher/students">
+          <el-icon><UserFilled /></el-icon><template #title>学生账号</template>
+        </el-menu-item>
         <el-menu-item index="/teacher/problems">
           <el-icon><Collection /></el-icon>
           <template #title>题库管理</template>

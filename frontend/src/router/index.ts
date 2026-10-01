@@ -21,6 +21,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', component: () => import('@/views/super-admin/AdminDashboardView.vue') },
       { path: 'users', component: () => import('@/views/super-admin/UserManagementView.vue') },
+      { path: 'learning', component: () => import('@/views/super-admin/LearningManagementView.vue') },
       { path: 'online', component: () => import('@/views/super-admin/OnlineUsersView.vue') },
       { path: 'announcements', component: () => import('@/views/super-admin/AnnouncementManagementView.vue') },
       { path: 'settings', component: () => import('@/views/super-admin/SiteSettingsView.vue') }
@@ -34,6 +35,7 @@ const routes: RouteRecordRaw[] = [
       { path: '', component: () => import('@/views/teacher/TeacherHomeView.vue') },
       { path: 'classes', component: () => import('@/views/teacher/ClassListView.vue') },
       { path: 'classes/:classId', component: () => import('@/views/teacher/ClassDetailView.vue') },
+      { path: 'students', component: () => import('@/views/teacher/StudentAccountsView.vue') },
       { path: 'problems', component: () => import('@/views/teacher/ProblemListView.vue') },
       { path: 'problems/create', component: () => import('@/views/teacher/ProblemEditView.vue') },
       { path: 'problems/:problemId/edit', component: () => import('@/views/teacher/ProblemEditView.vue') },
@@ -56,6 +58,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', component: () => import('@/views/student/StudentHomeView.vue') },
       { path: 'contests', component: () => import('@/views/student/StudentContestListView.vue') },
+      { path: 'after-class', component: () => import('@/views/student/AfterClassView.vue') },
       { path: 'code-visualizer', component: () => import('@/views/common/CodeVisualizerView.vue') },
       { path: 'account', component: () => import('@/views/common/AccountManagementView.vue') },
       { path: 'contests/:contestId', component: () => import('@/views/student/StudentContestDetailView.vue') },

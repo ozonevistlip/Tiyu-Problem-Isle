@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS site_setting (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO site_setting (setting_key, setting_value)
-VALUES ('registration_enabled', 'true')
+VALUES ('registration_enabled', 'false')
 ON DUPLICATE KEY UPDATE setting_key = VALUES(setting_key);
 
 CREATE TABLE IF NOT EXISTS site_visit (

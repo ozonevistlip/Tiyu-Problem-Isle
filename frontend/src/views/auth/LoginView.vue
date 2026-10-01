@@ -27,7 +27,7 @@
     </el-form>
     <p class="helper">忘记密码可以联系老师重置，别担心，进度还在。</p>
     <p v-if="registrationEnabled" class="switch">还没有账号？<router-link to="/register">创建一个新账号</router-link></p>
-    <p v-else class="switch muted">当前未开放自主注册，请联系管理员创建账号。</p>
+    <p v-else class="switch muted">当前未开放自主注册：老师请联系超级管理员，学生请联系老师。</p>
   </section>
 </template>
 
@@ -44,7 +44,7 @@ const user = useUserStore()
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
-const registrationEnabled = ref(true)
+const registrationEnabled = ref(false)
 const formRef = ref<FormInstance>()
 const form = reactive({ username: '', password: '' })
 const rules: FormRules = {

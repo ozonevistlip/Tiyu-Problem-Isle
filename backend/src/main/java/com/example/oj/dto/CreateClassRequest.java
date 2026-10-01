@@ -7,5 +7,7 @@ import lombok.Data;
 public class CreateClassRequest {
     @NotBlank
     private String className;
+    @jakarta.validation.constraints.NotNull
+    private Long classTypeId;
     private String description;
 }

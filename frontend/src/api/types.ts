@@ -73,6 +73,8 @@ export interface LoginResponse {
 export interface ClassInfo {
   id: number
   teacherId: number
+  classTypeId?: number
+  classTypeName?: string
   className: string
   description?: string
   status: number
