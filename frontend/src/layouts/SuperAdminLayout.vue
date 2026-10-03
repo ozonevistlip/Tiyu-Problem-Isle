@@ -12,6 +12,7 @@
         <el-menu-item index="/super-admin"><el-icon><Odometer /></el-icon><span>运行总览</span></el-menu-item>
         <el-menu-item index="/super-admin/users"><el-icon><UserFilled /></el-icon><span>用户管理</span></el-menu-item>
         <el-menu-item index="/super-admin/learning"><el-icon><School /></el-icon><span>班级类型与课后内容</span></el-menu-item>
+        <el-menu-item index="/super-admin/pets"><el-icon><Opportunity /></el-icon><span>宠物管理</span></el-menu-item>
         <el-menu-item index="/super-admin/online"><el-icon><Connection /></el-icon><span>在线用户</span></el-menu-item>
         <el-menu-item index="/super-admin/announcements"><el-icon><BellFilled /></el-icon><span>全站公告</span></el-menu-item>
         <el-menu-item index="/super-admin/settings"><el-icon><Setting /></el-icon><span>网站设置</span></el-menu-item>
@@ -50,7 +51,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { BellFilled, Connection, Odometer, School, Setting, UserFilled } from '@element-plus/icons-vue'
+import { BellFilled, Connection, Odometer, Opportunity, School, Setting, UserFilled } from '@element-plus/icons-vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import { useUserStore } from '@/stores/user'
 
@@ -58,7 +59,7 @@ const user = useUserStore()
 const route = useRoute()
 const router = useRouter()
 const title = computed(() => ({
-  '/super-admin': '运行总览', '/super-admin/users': '用户管理', '/super-admin/learning': '班级类型与课后内容', '/super-admin/online': '在线用户',
+  '/super-admin': '运行总览', '/super-admin/users': '用户管理', '/super-admin/learning': '班级类型与课后内容', '/super-admin/pets': '宠物管理', '/super-admin/online': '在线用户',
   '/super-admin/announcements': '全站公告', '/super-admin/settings': '网站设置'
 }[route.path] || '超级管理中心'))
 

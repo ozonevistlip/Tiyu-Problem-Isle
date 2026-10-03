@@ -3,7 +3,7 @@
     <section v-if="open" class="pet-menu" :style="menuStyle" aria-label="宠物设置">
       <header>
         <div>
-          <strong>学习伙伴</strong>
+          <strong>{{ petName || '学习伙伴' }}</strong>
           <small>按你的节奏陪伴</small>
         </div>
         <button type="button" aria-label="关闭宠物设置" @click="emit('close')">
@@ -23,6 +23,7 @@
         <span class="pet-menu__switch" :class="{ active: lowPerformanceMode }" />
       </button>
       <button type="button" class="pet-menu__row is-action" @click="emit('reset')">回到右下角</button>
+      <button v-if="canChat" type="button" class="pet-menu__row is-action" @click="emit('chat')">和宠物聊天</button>
       <button type="button" class="pet-menu__row is-danger" @click="emit('hide')">暂时隐藏伙伴</button>
     </section>
   </transition>
@@ -40,6 +41,8 @@ const props = defineProps<{
   muted: boolean
   autoBehaviorEnabled: boolean
   lowPerformanceMode: boolean
+  petName?: string
+  canChat?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -48,6 +51,7 @@ const emit = defineEmits<{
   toggleAuto: []
   toggleLowPerformance: []
   reset: []
+  chat: []
   hide: []
 }>()
 

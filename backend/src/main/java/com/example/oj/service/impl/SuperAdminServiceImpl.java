@@ -12,6 +12,7 @@ import com.example.oj.entity.Announcement;
 import com.example.oj.entity.ClassGroup;
 import com.example.oj.entity.Contest;
 import com.example.oj.entity.Problem;
+import com.example.oj.entity.PetGrant;
 import com.example.oj.entity.SiteSetting;
 import com.example.oj.entity.SiteVisit;
 import com.example.oj.entity.User;
@@ -20,6 +21,7 @@ import com.example.oj.mapper.AnnouncementMapper;
 import com.example.oj.mapper.ClassGroupMapper;
 import com.example.oj.mapper.ContestMapper;
 import com.example.oj.mapper.ProblemMapper;
+import com.example.oj.mapper.PetGrantMapper;
 import com.example.oj.mapper.SiteSettingMapper;
 import com.example.oj.mapper.SiteVisitMapper;
 import com.example.oj.mapper.UserMapper;
@@ -53,6 +55,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     private final ClassGroupMapper classGroupMapper;
     private final ContestMapper contestMapper;
     private final ProblemMapper problemMapper;
+    private final PetGrantMapper petGrantMapper;
 
     @Override
     public AdminDashboardVO dashboard() {
@@ -180,6 +183,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
             }
         }
         userSessionMapper.delete(new LambdaQueryWrapper<UserSession>().eq(UserSession::getUserId, id));
+        if ("student".equals(user.getRole())) {
+            petGrantMapper.delete(new LambdaQueryWrapper<PetGrant>().eq(PetGrant::getStudentId, id));
+        }
         userMapper.deleteById(id);
     }
 

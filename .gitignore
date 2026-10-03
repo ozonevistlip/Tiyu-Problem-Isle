@@ -22,6 +22,7 @@ frontend/*-run.err.log
 backend/target/
 backend/judge-work/
 backend/teaching-videos/
+backend/pet-assets/
 
 # Node / Vite
 frontend/node_modules/

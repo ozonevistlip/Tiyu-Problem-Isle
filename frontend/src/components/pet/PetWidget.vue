@@ -19,11 +19,14 @@
       :muted="store.muted"
       :auto-behavior-enabled="store.autoBehaviorEnabled"
       :low-performance-mode="store.lowPerformanceMode"
+      :pet-name="petName"
+      :can-chat="Boolean(petId)"
       @close="menuOpen = false"
       @toggle-muted="store.toggleMuted()"
       @toggle-auto="store.toggleAutoBehavior()"
       @toggle-low-performance="store.toggleLowPerformanceMode()"
       @reset="resetPosition"
+      @chat="openChat"
       @hide="hidePet"
     />
 
@@ -39,6 +42,8 @@
     >
       <PetCanvas
         ref="canvas"
+        :key="petId || 'preview'"
+        :pet-id="petId"
         :state="store.currentState"
         :low-performance="store.lowPerformanceMode"
         :reduced-motion="reducedMotion"
@@ -72,6 +77,7 @@
       <el-icon><Opportunity /></el-icon>
       <span>唤回学习伙伴</span>
     </button>
+    <PetChatDialog v-if="petId && petName" v-model="chatOpen" :pet-id="petId" :pet-name="petName" />
   </Teleport>
 </template>
 
@@ -95,8 +101,9 @@ import type { PetBusinessEvent, PetDragFrame, PetPointerStart, PetPosition, PetS
 import PetBubble from './PetBubble.vue'
 import PetCanvas from './PetCanvas.vue'
 import PetControlMenu from './PetControlMenu.vue'
+import PetChatDialog from './PetChatDialog.vue'
 
-const props = withDefaults(defineProps<{ debug?: boolean }>(), { debug: false })
+const props = withDefaults(defineProps<{ debug?: boolean; petId?: number; petName?: string }>(), { debug: false })
 
 interface PetCanvasExpose {
   setMotionFrame: (frame: PetDragFrame) => void
@@ -113,6 +120,7 @@ const widget = ref<HTMLElement | null>(null)
 const canvas = ref<PetCanvasExpose | null>(null)
 const dimensions = reactive(getPetDimensions())
 const menuOpen = ref(false)
+const chatOpen = ref(false)
 const hovered = ref(false)
 const ready = ref(false)
 const snapping = ref(false)
@@ -375,6 +383,11 @@ function applyWidgetPosition(position: PetPosition) {
 
 function openMenu() {
   menuOpen.value = true
+}
+
+function openChat() {
+  menuOpen.value = false
+  chatOpen.value = true
 }
 
 function hidePet() {

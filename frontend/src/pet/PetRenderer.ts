@@ -54,7 +54,8 @@ export class PetRenderer {
     })
     host.appendChild(app.canvas)
 
-    const texture = await Assets.load<Texture>(assetUrl)
+    // Authenticated pet atlases use blob: URLs, which have no file extension for Pixi to detect.
+    const texture = await Assets.load<Texture>({ src: assetUrl, loadParser: 'loadTextures' })
     if (this.destroyed) return
     texture.source.scaleMode = 'nearest'
 

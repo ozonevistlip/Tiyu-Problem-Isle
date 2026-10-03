@@ -37,6 +37,7 @@
           <el-icon><DataAnalysis /></el-icon>
           <template #title>代码可视化</template>
         </el-menu-item>
+        <el-menu-item index="/teacher/pets"><el-icon><Opportunity /></el-icon><template #title>宠物伙伴</template></el-menu-item>
         <el-menu-item index="/teacher/account">
           <el-icon><UserFilled /></el-icon>
           <template #title>管理自身账号</template>
@@ -52,20 +53,24 @@
         </router-view>
       </el-main>
     </el-container>
-    <PetWidget />
+    <PetWidget v-if="catalog.selected" :key="catalog.selected.id" :pet-id="catalog.selected.id" :pet-name="catalog.selected.name" />
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { Collection, DataAnalysis, Expand, Fold, HomeFilled, School, Trophy, UserFilled } from '@element-plus/icons-vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { Collection, DataAnalysis, Expand, Fold, HomeFilled, Opportunity, School, Trophy, UserFilled } from '@element-plus/icons-vue'
 import PetWidget from '@/components/pet/PetWidget.vue'
 import { usePet } from '@/composables/usePet'
+import { usePetCatalogStore } from '@/stores/petCatalog'
 
 const isCollapsed = ref(false)
 const pet = usePet()
+const catalog = usePetCatalogStore()
 
-onMounted(() => pet.welcome('老师好，今天也一起看看同学们的学习进度吧！'))
+function refreshOnFocus() { void catalog.refresh().catch(() => undefined) }
+onMounted(async () => { window.addEventListener('focus', refreshOnFocus); await catalog.refresh().catch(() => undefined); if (catalog.selected) pet.welcome('老师好，今天也一起看看同学们的学习进度吧！') })
+onUnmounted(() => window.removeEventListener('focus', refreshOnFocus))
 </script>
 
 <style scoped lang="scss">

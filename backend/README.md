@@ -10,6 +10,7 @@ Spring Boot 3 + JDK 17 + MySQL + MyBatis-Plus + Redis teaching OJ backend.
 - Redis judge queue: `StringRedisTemplate.opsForList().leftPush("judge_queue", submissionId)`.
 - Single scheduled `JudgeWorker` that atomically claims `PENDING` submissions and runs C++17 in Docker.
 - Super admin class types, shared lesson materials, teacher-owned student accounts, and tier-restricted after-class videos.
+- Super admin pet uploads, teacher grants, student pet animation and private in-memory DeepSeek chat.
 
 ## Start
 
@@ -20,6 +21,8 @@ mysql -uroot -p < sql/schema.sql
 ```
 
 For an existing database, back it up and run `sql/teaching_migration.sql` and then `sql/lesson_student_tier_migration.sql` once each. If the first migration was already applied, run only the second. The first closes self-registration while preserving the admin setting; the second moves class-wide tiers to lesson-specific choices. Configure `VIDEO_DIR` as a persistent, backed-up directory for uploaded videos.
+
+For the pet feature on an existing database, also run `sql/pet_migration.sql` once. Configure `PET_DIR` as a persistent, backed-up directory and `DEEPSEEK_API_KEY` on the backend. New pet previews and animation atlases must be static WebP files (maximum 8 MB); previews must be at most 2048×2048 pixels and atlases use the current 8×9 grid at 1536×1872 pixels. Existing PNG assets remain readable. The built-in pet is seeded by the migration, but students do not receive it automatically. Chat history is supplied by the browser on each request, limited to 20 messages, and is not written to the backend database or cache.
 
 2. Start Redis and Docker.
 

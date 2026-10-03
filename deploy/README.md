@@ -58,6 +58,8 @@ Runtime secrets and server paths are read from:
 /opt/cppkid/deploy/cppkid.env
 ```
 
+Before deploying the pet feature to an existing database, run `backend/sql/pet_migration.sql` once. Set `PET_DIR` to a persistent, backed-up directory and `DEEPSEEK_API_KEY` in the environment file. Create the pet asset directory before starting the service.
+
 Build the backend:
 
 ```bash
@@ -69,6 +71,7 @@ Install and start the service:
 
 ```bash
 mkdir -p /opt/cppkid/judge-work
+mkdir -p /opt/cppkid/pet-assets
 cp /opt/cppkid/deploy/cppkid.service /etc/systemd/system/cppkid.service
 systemctl daemon-reload
 systemctl enable --now cppkid

@@ -8,12 +8,14 @@ import com.example.oj.entity.ClassGroup;
 import com.example.oj.entity.ClassMember;
 import com.example.oj.entity.Lesson;
 import com.example.oj.entity.LessonStudentTier;
+import com.example.oj.entity.PetGrant;
 import com.example.oj.entity.User;
 import com.example.oj.entity.UserSession;
 import com.example.oj.mapper.ClassGroupMapper;
 import com.example.oj.mapper.ClassMemberMapper;
 import com.example.oj.mapper.LessonMapper;
 import com.example.oj.mapper.LessonStudentTierMapper;
+import com.example.oj.mapper.PetGrantMapper;
 import com.example.oj.mapper.UserMapper;
 import com.example.oj.mapper.UserSessionMapper;
 import com.example.oj.service.impl.AuthServiceImpl;
@@ -40,6 +42,7 @@ public class TeacherStudentController {
     private final ClassMemberMapper memberMapper;
     private final LessonMapper lessonMapper;
     private final LessonStudentTierMapper lessonTierMapper;
+    private final PetGrantMapper petGrantMapper;
 
     @GetMapping
     public Result<List<UserVO>> list() {
@@ -94,6 +97,7 @@ public class TeacherStudentController {
         requireOwnStudent(id);
         lessonTierMapper.delete(new LambdaQueryWrapper<LessonStudentTier>()
                 .eq(LessonStudentTier::getStudentId, id));
+        petGrantMapper.delete(new LambdaQueryWrapper<PetGrant>().eq(PetGrant::getStudentId, id));
         memberMapper.delete(new LambdaQueryWrapper<ClassMember>().eq(ClassMember::getStudentId, id));
         sessionMapper.delete(new LambdaQueryWrapper<UserSession>().eq(UserSession::getUserId, id));
         userMapper.deleteById(id);

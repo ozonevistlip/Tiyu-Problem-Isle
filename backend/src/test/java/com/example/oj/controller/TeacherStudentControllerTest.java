@@ -6,6 +6,7 @@ import com.example.oj.mapper.ClassGroupMapper;
 import com.example.oj.mapper.ClassMemberMapper;
 import com.example.oj.mapper.LessonMapper;
 import com.example.oj.mapper.LessonStudentTierMapper;
+import com.example.oj.mapper.PetGrantMapper;
 import com.example.oj.mapper.UserMapper;
 import com.example.oj.mapper.UserSessionMapper;
 import com.example.oj.utils.LoginUser;
@@ -25,7 +26,8 @@ class TeacherStudentControllerTest {
     private final ClassMemberMapper members = mock(ClassMemberMapper.class);
     private final LessonMapper lessons = mock(LessonMapper.class);
     private final LessonStudentTierMapper lessonTiers = mock(LessonStudentTierMapper.class);
-    private final TeacherStudentController controller = new TeacherStudentController(users, sessions, classes, members, lessons, lessonTiers);
+    private final PetGrantMapper petGrants = mock(PetGrantMapper.class);
+    private final TeacherStudentController controller = new TeacherStudentController(users, sessions, classes, members, lessons, lessonTiers, petGrants);
 
     @AfterEach
     void cleanup() { UserContext.clear(); }

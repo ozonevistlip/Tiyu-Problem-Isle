@@ -14,6 +14,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     userInfo.value = null
     clearToken()
+    window.dispatchEvent(new Event('cppkid-auth-cleared'))
   }
 
   window.addEventListener('cppkid-auth-expired', clearLocalSession)
